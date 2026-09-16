@@ -1,0 +1,174 @@
+// Windows resources: manifest, screensaver name, settings dialog, version.
+#include <windows.h>
+#include "resource.h"
+
+1 RT_MANIFEST "theblackhole.manifest"
+IDI_APP ICON "theblackhole.ico"
+
+STRINGTABLE
+BEGIN
+    IDS_DESCRIPTION "The Black Hole"
+END
+
+// Two columns. Labels at x+7, trackbars 100 wide, values right-aligned at the
+// group's edge. The scene picker at the bottom is created hidden and revealed
+// by Ctrl+Alt+S, which also grows the dialog by SCENES_EXTRA_DU and pushes the
+// buttons down - keep the two in step.
+IDD_CONFIG DIALOGEX 0, 0, 480, 396
+STYLE DS_SETFONT | DS_MODALFRAME | DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "The Black Hole - Settings"
+FONT 8, "MS Shell Dlg", 400, 0, 1
+BEGIN
+    // ---------------------------------------------------------- left column
+    GROUPBOX        "Motion and camera", IDC_STATIC, 7, 7, 229, 185
+    AUTOCHECKBOX    "Side movement", IDC_SIDE, 14, 20, 150, 10
+    LTEXT           "Movement speed", IDC_SPEED_LBL, 22, 37, 74, 8
+    CONTROL         "", IDC_SPEED, "msctls_trackbar32", TBS_HORZ | TBS_AUTOTICKS | WS_TABSTOP, 100, 34, 100, 15
+    RTEXT           "", IDC_SPEED_VAL, 204, 37, 30, 8
+    AUTOCHECKBOX    "Mouse controlled rotation", IDC_MOUSEROT, 14, 52, 150, 10
+    AUTOCHECKBOX    "Exit on mouse move", IDC_EXITMOUSE, 14, 66, 150, 10
+    LTEXT           "Mouse sensitivity", IDC_SENS_LBL, 22, 83, 74, 8
+    CONTROL         "", IDC_SENS, "msctls_trackbar32", TBS_HORZ | TBS_AUTOTICKS | WS_TABSTOP, 100, 80, 100, 15
+    RTEXT           "", IDC_SENS_VAL, 204, 83, 30, 8
+    AUTOCHECKBOX    "Mouse click resets the view", IDC_CLICKRESET, 22, 97, 160, 10
+    AUTOCHECKBOX    "Exit on any button   (unchecked: keys look around)", IDC_EXITKEY, 14, 111, 215, 10
+    AUTOCHECKBOX    "360 rotation when idle", IDC_ROT360, 14, 125, 150, 10
+    LTEXT           "Mode", IDC_ROTMODE_LBL, 22, 140, 26, 8
+    AUTORADIOBUTTON "Orbit", IDC_ROT_ORBIT, 52, 139, 40, 10, WS_GROUP | WS_TABSTOP
+    AUTORADIOBUTTON "Yaw", IDC_ROT_YAW, 94, 139, 36, 10
+    AUTORADIOBUTTON "Tumble", IDC_ROT_TUMBLE, 132, 139, 48, 10
+    LTEXT           "Full turn", IDC_ROTSEC_LBL, 22, 157, 74, 8
+    CONTROL         "", IDC_ROTSEC, "msctls_trackbar32", TBS_HORZ | TBS_AUTOTICKS | WS_TABSTOP, 100, 154, 100, 15
+    RTEXT           "", IDC_ROTSEC_VAL, 204, 157, 30, 8
+    LTEXT           "Warp to another", IDC_STATIC, 14, 171, 82, 8
+    CONTROL         "", IDC_WARP, "msctls_trackbar32", TBS_HORZ | TBS_AUTOTICKS | WS_TABSTOP, 100, 168, 100, 15
+    RTEXT           "", IDC_WARP_VAL, 204, 171, 30, 8
+
+    GROUPBOX        "Particles", IDC_STATIC, 7, 196, 229, 110
+    LTEXT           "Stars in view", IDC_STATIC, 14, 212, 82, 8
+    CONTROL         "", IDC_STARS, "msctls_trackbar32", TBS_HORZ | TBS_AUTOTICKS | WS_TABSTOP, 100, 209, 100, 15
+    RTEXT           "", IDC_STARS_VAL, 204, 212, 30, 8
+    LTEXT           "Particle size", IDC_STATIC, 14, 229, 82, 8
+    CONTROL         "", IDC_PSIZE, "msctls_trackbar32", TBS_HORZ | TBS_AUTOTICKS | WS_TABSTOP, 100, 226, 100, 15
+    RTEXT           "", IDC_PSIZE_VAL, 204, 229, 30, 8
+    LTEXT           "Ghost tail length", IDC_STATIC, 14, 246, 82, 8
+    CONTROL         "", IDC_GHOST, "msctls_trackbar32", TBS_HORZ | TBS_AUTOTICKS | WS_TABSTOP, 100, 243, 100, 15
+    RTEXT           "", IDC_GHOST_VAL, 204, 246, 30, 8
+    LTEXT           "Particle blur", IDC_STATIC, 14, 263, 82, 8
+    CONTROL         "", IDC_BLUR, "msctls_trackbar32", TBS_HORZ | TBS_AUTOTICKS | WS_TABSTOP, 100, 260, 100, 15
+    RTEXT           "", IDC_BLUR_VAL, 204, 263, 30, 8
+    LTEXT           "Star twinkle", IDC_STATIC, 14, 280, 82, 8
+    CONTROL         "", IDC_TWINKLE, "msctls_trackbar32", TBS_HORZ | TBS_AUTOTICKS | WS_TABSTOP, 100, 277, 100, 15
+    RTEXT           "", IDC_TWINKLE_VAL, 204, 280, 30, 8
+    AUTOCHECKBOX    "Natural star colours (spread by temperature)", IDC_NATURAL, 14, 293, 215, 10
+
+    GROUPBOX        "Colour", IDC_STATIC, 7, 310, 229, 54
+    LTEXT           "Stars", IDC_STATIC, 14, 326, 26, 8
+    CONTROL         "", IDC_STARCOL, "Button", BS_OWNERDRAW | WS_TABSTOP, 42, 323, 30, 13
+    LTEXT           "Space", IDC_STATIC, 82, 326, 26, 8
+    CONTROL         "", IDC_SPACECOL, "Button", BS_OWNERDRAW | WS_TABSTOP, 110, 323, 30, 13
+    LTEXT           "Disk", IDC_STATIC, 150, 326, 26, 8
+    CONTROL         "", IDC_DISKCOL, "Button", BS_OWNERDRAW | WS_TABSTOP, 178, 323, 30, 13
+    LTEXT           "Ring", IDC_STATIC, 14, 346, 26, 8
+    CONTROL         "", IDC_RINGCOL, "Button", BS_OWNERDRAW | WS_TABSTOP, 42, 343, 30, 13
+    LTEXT           "Shadow", IDC_STATIC, 82, 346, 26, 8
+    CONTROL         "", IDC_SHADOWCOL, "Button", BS_OWNERDRAW | WS_TABSTOP, 110, 343, 30, 13
+    LTEXT           "Nebula", IDC_STATIC, 150, 346, 26, 8
+    CONTROL         "", IDC_NEBULACOL, "Button", BS_OWNERDRAW | WS_TABSTOP, 178, 343, 30, 13
+
+    // --------------------------------------------------------- right column
+    GROUPBOX        "Physics", IDC_STATIC, 243, 7, 229, 105
+    LTEXT           "Spin", IDC_STATIC, 250, 23, 82, 8
+    CONTROL         "", IDC_SPIN, "msctls_trackbar32", TBS_HORZ | TBS_AUTOTICKS | WS_TABSTOP, 336, 20, 100, 15
+    RTEXT           "", IDC_SPIN_VAL, 440, 23, 30, 8
+    LTEXT           "Lensing strength", IDC_STATIC, 250, 40, 82, 8
+    CONTROL         "", IDC_LENSING, "msctls_trackbar32", TBS_HORZ | TBS_AUTOTICKS | WS_TABSTOP, 336, 37, 100, 15
+    RTEXT           "", IDC_LENSING_VAL, 440, 40, 30, 8
+    LTEXT           "Time dilation", IDC_STATIC, 250, 57, 82, 8
+    CONTROL         "", IDC_TIMEDIL, "msctls_trackbar32", TBS_HORZ | TBS_AUTOTICKS | WS_TABSTOP, 336, 54, 100, 15
+    RTEXT           "", IDC_TIMEDIL_VAL, 440, 57, 30, 8
+    AUTOCHECKBOX    "True relativistic Doppler   (off = Interstellar look)", IDC_DOPPLER, 250, 71, 215, 10
+    AUTOCHECKBOX    "Gravitational redshift", IDC_REDSHIFT, 250, 85, 150, 10
+    AUTOCHECKBOX    "Higher-order images", IDC_HIGHORDER, 250, 99, 150, 10
+
+    GROUPBOX        "Events", IDC_STATIC, 243, 116, 229, 66
+    AUTOCHECKBOX    "Relativistic jets", IDC_JETS, 250, 130, 200, 10
+    AUTOCHECKBOX    "Binary mergers complete", IDC_EV_MERGER, 250, 144, 200, 10
+    AUTOCHECKBOX    "Fall-in through the horizon", IDC_EV_FALLIN, 250, 158, 200, 10
+    AUTOCHECKBOX    "Tidal disruption flare", IDC_EV_FLARE, 250, 172, 200, 10
+
+    GROUPBOX        "Camera damage", IDC_STATIC, 243, 186, 229, 120
+    AUTOCHECKBOX    "Camera takes damage", IDC_DAMAGE, 250, 199, 200, 10
+    LTEXT           "Clean for", IDC_DMG_GRACE_LBL, 258, 216, 74, 8
+    CONTROL         "", IDC_DMG_GRACE, "msctls_trackbar32", TBS_HORZ | TBS_AUTOTICKS | WS_TABSTOP, 336, 213, 100, 15
+    RTEXT           "", IDC_DMG_GRACE_VAL, 440, 216, 30, 8
+    LTEXT           "Heal time", IDC_DMG_HEAL_LBL, 258, 233, 74, 8
+    CONTROL         "", IDC_DMG_HEAL, "msctls_trackbar32", TBS_HORZ | TBS_AUTOTICKS | WS_TABSTOP, 336, 230, 100, 15
+    RTEXT           "", IDC_DMG_HEAL_VAL, 440, 233, 30, 8
+    AUTOCHECKBOX    "Glass damage   (cracks)", IDC_DMG_GLASS, 258, 247, 190, 10
+    AUTOCHECKBOX    "Matrix damage   (broken pixels)", IDC_DMG_MATRIX, 258, 261, 190, 10
+    LTEXT           "Palette", IDC_DMG_PAL_LBL, 258, 276, 28, 8
+    AUTORADIOBUTTON "White", IDC_DMG_WHITE, 290, 275, 40, 10, WS_GROUP | WS_TABSTOP
+    AUTORADIOBUTTON "Green/purple", IDC_DMG_GREEN, 332, 275, 62, 10
+    AUTORADIOBUTTON "Black", IDC_DMG_BLACK, 396, 275, 40, 10
+    AUTORADIOBUTTON "Custom", IDC_DMG_CUSTOM, 290, 289, 46, 10
+    CONTROL         "", IDC_DMGCOL, "Button", BS_OWNERDRAW | WS_TABSTOP, 340, 287, 30, 13
+
+    GROUPBOX        "Power", IDC_STATIC, 243, 310, 229, 44
+    LTEXT           "Quality", IDC_STATIC, 250, 326, 82, 8
+    CONTROL         "", IDC_QUALITY, "msctls_trackbar32", TBS_HORZ | TBS_AUTOTICKS | WS_TABSTOP, 336, 323, 100, 15
+    RTEXT           "", IDC_QUALITY_VAL, 440, 326, 30, 8
+    LTEXT           "Frame rate limit", IDC_STATIC, 250, 343, 82, 8
+    CONTROL         "", IDC_FPS, "msctls_trackbar32", TBS_HORZ | TBS_AUTOTICKS | WS_TABSTOP, 336, 340, 100, 15
+    RTEXT           "", IDC_FPS_VAL, 440, 343, 30, 8
+
+    // ---------------------- the scene picker: created hidden, Ctrl+Alt+S
+    GROUPBOX        "Scenes in the rotation", IDC_SCENE_BOX, 7, 374, 465, 76, NOT WS_VISIBLE
+    AUTOCHECKBOX    "Clean void", IDC_SCENE_FIRST + 0, 14, 390, 88, 10, NOT WS_VISIBLE
+    AUTOCHECKBOX    "Feeding ended", IDC_SCENE_FIRST + 1, 106, 390, 88, 10, NOT WS_VISIBLE
+    AUTOCHECKBOX    "Feeding now", IDC_SCENE_FIRST + 2, 198, 390, 88, 10, NOT WS_VISIBLE
+    AUTOCHECKBOX    "Near evaporation", IDC_SCENE_FIRST + 3, 290, 390, 88, 10, NOT WS_VISIBLE
+    AUTOCHECKBOX    "Stardust scoop", IDC_SCENE_FIRST + 4, 382, 390, 88, 10, NOT WS_VISIBLE
+    AUTOCHECKBOX    "Binary in void", IDC_SCENE_FIRST + 5, 14, 406, 88, 10, NOT WS_VISIBLE
+    AUTOCHECKBOX    "Binary with disk", IDC_SCENE_FIRST + 6, 106, 406, 88, 10, NOT WS_VISIBLE
+    AUTOCHECKBOX    "Nebula backdrop", IDC_SCENE_FIRST + 7, 198, 406, 88, 10, NOT WS_VISIBLE
+    AUTOCHECKBOX    "Galactic core", IDC_SCENE_FIRST + 8, 290, 406, 88, 10, NOT WS_VISIBLE
+    AUTOCHECKBOX    "Merger aftermath", IDC_SCENE_FIRST + 9, 382, 406, 88, 10, NOT WS_VISIBLE
+    PUSHBUTTON      "All", IDC_SCENE_ALL, 14, 424, 44, 14, NOT WS_VISIBLE
+    PUSHBUTTON      "None", IDC_SCENE_NONE, 62, 424, 44, 14, NOT WS_VISIBLE
+
+    PUSHBUTTON      "Defaults", IDC_DEFAULTS, 7, 374, 54, 14
+    PUSHBUTTON      "Preview...", IDC_PREVIEW, 65, 374, 60, 14
+    DEFPUSHBUTTON   "OK", IDOK, 360, 374, 52, 14
+    PUSHBUTTON      "Cancel", IDCANCEL, 418, 374, 54, 14
+END
+
+VS_VERSION_INFO VERSIONINFO
+ FILEVERSION 1,0,0,0
+ PRODUCTVERSION 1,0,0,0
+ FILEFLAGSMASK 0x3fL
+ FILEFLAGS 0x0L
+ FILEOS VOS_NT_WINDOWS32
+ FILETYPE VFT_APP
+ FILESUBTYPE VFT2_UNKNOWN
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904b0"
+        BEGIN
+            VALUE "CompanyName", "Andrii Kamlyk"
+            VALUE "FileDescription", "The Black Hole screensaver"
+            VALUE "FileVersion", "1.0.0.0"
+            VALUE "InternalName", "TheBlackHole"
+            VALUE "LegalCopyright", "Copyright (c) 2026 Andrii Kamlyk. MIT License."
+            VALUE "Comments", "OpenGL black hole screensaver. Open source."
+            VALUE "OriginalFilename", "TheBlackHole.scr"
+            VALUE "ProductName", "The Black Hole"
+            VALUE "ProductVersion", "1.0.0.0"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x409, 1200
+    END
+END

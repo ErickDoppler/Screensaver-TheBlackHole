@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<!-- XScreenSaver settings page for The Black Hole. Every control maps to one
+     of the screensaver's own command-line settings, so the defaults here must match
+     src/settings.h. -->
+<screensaver name="theblackhole" _label="The Black Hole" gl="yes">
+
+  <command arg="-root"/>
+
+  <hgroup>
+   <vgroup>
+    <number id="speed" type="slider" arg="--movement-speed %"
+            _label="Movement speed" _low-label="Still" _high-label="Fast"
+            low="0" high="100" default="30"/>
+    <number id="turn" type="slider" arg="--rotate-seconds %"
+            _label="Seconds per full turn" _low-label="Quick" _high-label="Slow"
+            low="10" high="600" default="120"/>
+    <number id="warp" type="slider" arg="--warp-minutes %"
+            _label="Warp to another hole (minutes, 0 = never)" _low-label="Never" _high-label="2 h"
+            low="0" high="120" default="15"/>
+    <number id="fov" type="slider" arg="--fov %"
+            _label="Field of view" _low-label="Long lens" _high-label="Wide"
+            low="20" high="110" default="55"/>
+    <select id="rotmode">
+      <option id="orbit"  _label="Idle motion: orbit"/>
+      <option id="yaw"    _label="Idle motion: yaw"    arg-set="--rotate-mode yaw"/>
+      <option id="tumble" _label="Idle motion: tumble" arg-set="--rotate-mode tumble"/>
+    </select>
+    <boolean id="rot360" _label="Turn when idle" arg-unset="--no-rotate-360"/>
+   </vgroup>
+
+   <vgroup>
+    <number id="stars" type="slider" arg="--star-count %"
+            _label="Stars" _low-label="Few" _high-label="Many"
+            low="1000" high="20000" default="5500"/>
+    <number id="psize" type="slider" arg="--particle-size %"
+            _label="Particle size" _low-label="Fine" _high-label="Large"
+            low="1" high="50" default="2"/>
+    <number id="ghost" type="slider" arg="--ghost-tail %"
+            _label="Ghost tail" _low-label="None" _high-label="Long"
+            low="0" high="100" default="12"/>
+    <number id="blur" type="slider" arg="--blur %"
+            _label="Particle blur" _low-label="Sharp" _high-label="Soft"
+            low="0" high="100" default="10"/>
+    <number id="twinkle" type="slider" arg="--twinkle %"
+            _label="Star twinkle" _low-label="Steady" _high-label="Lively"
+            low="0" high="100" default="15"/>
+    <number id="bloom" type="slider" arg="--bloom %"
+            _label="Bloom" _low-label="None" _high-label="Blinding"
+            low="0" high="100" default="42"/>
+   </vgroup>
+  </hgroup>
+
+  <hgroup>
+   <vgroup>
+    <number id="spin" type="slider" arg="--spin %"
+            _label="Spin (thousandths)" _low-label="Still" _high-label="Maximal"
+            low="0" high="999" default="700"/>
+    <number id="lensing" type="slider" arg="--lensing %"
+            _label="Lensing strength (%)" _low-label="Half" _high-label="Triple"
+            low="50" high="300" default="100"/>
+    <number id="dilation" type="slider" arg="--time-dilation %"
+            _label="Time dilation" _low-label="Slow" _high-label="Fast"
+            low="0" high="100" default="50"/>
+    <select id="doppler">
+      <option id="interstellar" _label="Disk: Interstellar look"/>
+      <option id="true"         _label="Disk: true relativistic" arg-set="--doppler true"/>
+    </select>
+    <boolean id="redshift" _label="Gravitational redshift" arg-unset="--no-redshift"/>
+    <boolean id="higher"   _label="Higher-order images"    arg-unset="--no-higher-order"/>
+    <boolean id="jets"     _label="Jets"                   arg-unset="--no-jets"/>
+    <boolean id="merger"   _label="Event: merger"          arg-unset="--no-event-merger"/>
+    <boolean id="fallin"   _label="Event: fall-in"         arg-unset="--no-event-fallin"/>
+    <boolean id="flare"    _label="Event: flare"           arg-unset="--no-event-flare"/>
+   </vgroup>
+
+   <vgroup>
+    <boolean id="damage" _label="Camera damage" arg-unset="--no-damage"/>
+    <number id="grace" type="slider" arg="--damage-grace %"
+            _label="Clean minutes before and between damage" _low-label="0" _high-label="30"
+            low="0" high="30" default="2"/>
+    <number id="heal" type="slider" arg="--damage-heal %"
+            _label="Heal time (seconds)" _low-label="5" _high-label="300"
+            low="5" high="300" default="45"/>
+    <boolean id="glass"  _label="Glass cracks"  arg-unset="--no-damage-glass"/>
+    <boolean id="matrix" _label="Dead pixels"   arg-unset="--no-damage-matrix"/>
+    <select id="palette">
+      <option id="white"  _label="Dead pixels: white"/>
+      <option id="green"  _label="Dead pixels: green / purple" arg-set="--damage-palette green"/>
+      <option id="black"  _label="Dead pixels: black"          arg-set="--damage-palette black"/>
+    </select>
+    <number id="quality" type="slider" arg="--quality %"
+            _label="Quality (0 = automatic)" _low-label="Auto" _high-label="Best"
+            low="0" high="100" default="0"/>
+    <number id="fps" type="slider" arg="--fps %"
+            _label="Frame rate cap" _low-label="10" _high-label="120"
+            low="10" high="120" default="60"/>
+   </vgroup>
+  </hgroup>
+
+  <_description>
+A black hole, simulated. The camera warps in beside one, holds still while
+the universe bends around it, and warps away to another. The Einstein ring,
+the photon sphere and the accretion disk arcing over the shadow are not
+painted on: they come from tracing a light ray through curved spacetime for
+every pixel.
+
+MIT License. Written by Andrii Kamlyk.
+  </_description>
+</screensaver>

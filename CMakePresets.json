@@ -1,0 +1,45 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": { "major": 3, "minor": 25, "patch": 0 },
+  "configurePresets": [
+    {
+      "name": "win-mingw",
+      "displayName": "Windows / GCC (w64devkit) / Ninja",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/win-mingw",
+      "toolchainFile": "${sourceDir}/cmake/toolchain-w64devkit.cmake",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_MAKE_PROGRAM": "C:/workenv/ninja/ninja.exe",
+        "FETCHCONTENT_SOURCE_DIR_SDL3": "C:/workenv/SDL3-3.4.16"
+      },
+      "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Windows" }
+    },
+    {
+      "name": "win-mingw-debug",
+      "inherits": "win-mingw",
+      "binaryDir": "${sourceDir}/build/win-mingw-debug",
+      "cacheVariables": { "CMAKE_BUILD_TYPE": "Debug" }
+    },
+    {
+      "name": "linux",
+      "displayName": "Linux / GCC or Clang / Ninja",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/linux",
+      "cacheVariables": { "CMAKE_BUILD_TYPE": "Release" },
+      "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Linux" }
+    },
+    {
+      "name": "linux-system-sdl",
+      "inherits": "linux",
+      "binaryDir": "${sourceDir}/build/linux-system-sdl",
+      "cacheVariables": { "BH_SYSTEM_SDL": "ON" }
+    }
+  ],
+  "buildPresets": [
+    { "name": "win-mingw", "configurePreset": "win-mingw" },
+    { "name": "win-mingw-debug", "configurePreset": "win-mingw-debug" },
+    { "name": "linux", "configurePreset": "linux" },
+    { "name": "linux-system-sdl", "configurePreset": "linux-system-sdl" }
+  ]
+}
