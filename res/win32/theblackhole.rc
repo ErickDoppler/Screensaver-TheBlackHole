@@ -144,8 +144,8 @@ BEGIN
 END
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 1,0,0,0
- PRODUCTVERSION 1,0,0,0
+ FILEVERSION 1,0,1,0
+ PRODUCTVERSION 1,0,1,0
  FILEFLAGSMASK 0x3fL
  FILEFLAGS 0x0L
  FILEOS VOS_NT_WINDOWS32
@@ -158,13 +158,13 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Andrii Kamlyk"
             VALUE "FileDescription", "The Black Hole screensaver"
-            VALUE "FileVersion", "1.0.0.0"
+            VALUE "FileVersion", "1.0.1.0"
             VALUE "InternalName", "TheBlackHole"
             VALUE "LegalCopyright", "Copyright (c) 2026 Andrii Kamlyk. MIT License."
             VALUE "Comments", "OpenGL black hole screensaver. Open source."
             VALUE "OriginalFilename", "TheBlackHole.scr"
             VALUE "ProductName", "The Black Hole"
-            VALUE "ProductVersion", "1.0.0.0"
+            VALUE "ProductVersion", "1.0.1.0"
         END
     END
     BLOCK "VarFileInfo"
