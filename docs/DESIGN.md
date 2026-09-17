@@ -168,7 +168,10 @@ with the default capped below the flicker range.
 * **Idle.** After 20 s with no input (or with controls disabled) the 360 degree
   motion begins, completing a full turn over the configured 3-999 s. Three
   selectable modes: **orbit** (parallax), **yaw in place** (simplest, whole sky
-  guaranteed), **tumble** (yaw plus drifting pitch, over and under the disk).
+  guaranteed), **tumble** (the view turns, nods and slowly rolls while the
+  camera drifts round the hole and swings from over the disk to under it).
+  The idle motion has its own aim angles, separate from the user's look-around,
+  so the user's aim easing back to the hole never cancels the turn.
 * **Movement without movement.** If the user steers, dust shears left and
   right, faster and slower, and the disk's stripes move - but the hole does
   not change. It is hundreds of light years away. Walking changes nothing, and

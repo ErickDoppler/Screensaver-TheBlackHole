@@ -88,6 +88,12 @@ typedef struct Scene {
     float  coverage;          /* the shadow's share of the screen on arrival */
     Framing framing;
     float  yaw, pitch;        /* look-around, relative to facing the hole */
+    /* The idle motion's own aim, on top of the user's. Kept apart because the
+     * user's aim eases back to the hole when they let go, and sharing the
+     * angles made that easing cancel the Yaw and Tumble turns outright. */
+    float  auto_yaw, auto_pitch, auto_roll;
+    float  theta_base;        /* the scene's own elevation, which Tumble swings about */
+    float  tumble_t;          /* seconds of tumbling in this scene */
     float  drift;             /* Side movement: a slow lateral slide */
 
     /* The lens. Scenes choose their own focal length: a wide one for the

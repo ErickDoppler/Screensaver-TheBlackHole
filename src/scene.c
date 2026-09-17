@@ -325,6 +325,8 @@ static void configure(Scene *sc, const Settings *s, int kind) {
      * disk does not need the help and would only look haloed. */
     if (!sc->disk_on) sc->ring_glow = 0.30f;
     sc->cam_theta = pick_theta(sc, off_plane, side);
+    sc->theta_base = sc->cam_theta;
+    sc->tumble_t = 0.f;
     sc->cam_phi = rng_range(&sc->rng, 0.f, 2.f * BH_PI);
     sc->drift = 0.f;
     sc->disk_time = rng_range(&sc->rng, 0.f, 500.f);
@@ -405,21 +407,26 @@ vec3 scene_cam_pos(const Scene *sc) {
 
 void scene_cam_basis(const Scene *sc, vec3 *right, vec3 *up, vec3 *fwd) {
     vec3 p = scene_cam_pos(sc);
-    /* Looking at the hole, then turned by the user's own yaw and pitch. */
+    /* Looking at the hole, then turned by the idle motion and the user's own
+     * yaw and pitch together. */
     vec3 f = v3_norm(v3_scale(p, -1.f));
     vec3 world_up = v3(0, 1, 0);
     if (fabsf(v3_dot(f, world_up)) > 0.995f) world_up = v3(0, 0, 1);
     vec3 rt = v3_norm(v3_cross(f, world_up));
     vec3 u  = v3_cross(rt, f);
     /* yaw about the camera's up, then pitch about its right */
-    float cy = cosf(sc->yaw), sy = sinf(sc->yaw);
+    float yaw = sc->yaw + sc->auto_yaw, pitch = sc->pitch + sc->auto_pitch;
+    float cy = cosf(yaw), sy = sinf(yaw);
     vec3 f1 = v3_add(v3_scale(f, cy), v3_scale(rt, sy));
     vec3 r1 = v3_sub(v3_scale(rt, cy), v3_scale(f, sy));
-    float cp = cosf(sc->pitch), sp = sinf(sc->pitch);
+    float cp = cosf(pitch), sp = sinf(pitch);
     vec3 f2 = v3_norm(v3_add(v3_scale(f1, cp), v3_scale(u, sp)));
-    vec3 u2 = v3_norm(v3_cross(r1, f2));
-    *right = v3_norm(r1);
-    *up = u2;
+    vec3 r2 = v3_norm(r1);
+    vec3 u2 = v3_norm(v3_cross(r2, f2));
+    /* and roll about the view direction, for Tumble */
+    float cr = cosf(sc->auto_roll), sr = sinf(sc->auto_roll);
+    *right = v3_add(v3_scale(r2, cr), v3_scale(u2, sr));
+    *up = v3_sub(v3_scale(u2, cr), v3_scale(r2, sr));
     *fwd = f2;
 }
 
@@ -687,7 +694,24 @@ void scene_update(Scene *sc, const Settings *s, float dt, int manual) {
         sc->cam_phi += v * dt * 0.35f;
     }
 
-    if (!s->rotate_360) return;
+    /* Once they have been idle a while, the view they aimed drifts back to
+     * facing the hole - slowly enough that it is never caught doing it. This
+     * touches only the user's aim; the idle motion below has its own. */
+    if (!manual) {
+        sc->yaw   = approachf(sc->yaw,   0.f, 6.f, dt);
+        sc->pitch = approachf(sc->pitch, 0.f, 6.f, dt);
+    }
+
+    int mode = s->rotate_360 ? s->rotate_mode : -1;
+    /* Whatever the current mode does not drive settles back to level. The yaw
+     * is taken the short way round, from wherever the last turn left it. */
+    if (mode != ROT_YAW && mode != ROT_TUMBLE)
+        sc->auto_yaw = approachf(wrapf(sc->auto_yaw, -BH_PI, BH_PI), 0.f, 4.f, dt);
+    if (mode != ROT_TUMBLE) {
+        sc->auto_pitch = approachf(sc->auto_pitch, 0.f, 4.f, dt);
+        sc->auto_roll  = approachf(wrapf(sc->auto_roll, -BH_PI, BH_PI), 0.f, 4.f, dt);
+    }
+    if (mode < 0) return;
 
     /* The turn does NOT stop because somebody touched the mouse.
      *
@@ -705,19 +729,30 @@ void scene_update(Scene *sc, const Settings *s, float dt, int manual) {
 
     /* A full turn in the time the slider asks for. */
     float rate = 2.f * BH_PI / (float)(s->rotate_seconds > 0 ? s->rotate_seconds : 120);
-    switch (s->rotate_mode) {
+    switch (mode) {
     case ROT_YAW:
         /* The camera holds its place and turns on the spot: the whole sky and
          * the hole pass through the frame, with no parallax. */
-        sc->yaw = wrapf(sc->yaw + rate * dt, -BH_PI, BH_PI);
+        sc->auto_yaw = wrapf(sc->auto_yaw + rate * dt, -BH_PI, BH_PI);
         break;
-    case ROT_TUMBLE:
-        /* Yaw, plus a slow drift in polar angle that carries the view over and
-         * under the disk. The pitch is a slower harmonic so the two never sync
-         * into a repeating figure. */
-        sc->cam_phi += rate * dt;
-        sc->cam_theta = BH_PI * 0.5f + 0.62f * sinf(sc->time * rate * 0.31f);
+    case ROT_TUMBLE: {
+        /* The view itself tumbles: a full turn, a nod up and down, and a slow
+         * roll, at rates that never line up into a repeating figure - so the
+         * hole sweeps through the frame from ever-changing directions. Under
+         * that, the camera drifts round the hole and swings from over the disk
+         * to under it and back, starting from the elevation the scene chose
+         * rather than jumping to the plane. */
+        sc->tumble_t += dt;
+        float t = sc->tumble_t * rate;
+        sc->auto_yaw   = wrapf(sc->auto_yaw + rate * dt, -BH_PI, BH_PI);
+        sc->auto_pitch = approachf(sc->auto_pitch, 0.75f * sinf(t * 0.61f), 1.5f, dt);
+        sc->auto_roll  = wrapf(sc->auto_roll + rate * 0.43f * dt, -BH_PI, BH_PI);
+        sc->cam_phi += rate * 0.5f * dt;
+        float off = sc->theta_base - BH_PI * 0.5f;
+        if (fabsf(off) < 0.15f) off = off < 0.f ? -0.15f : 0.15f;
+        sc->cam_theta = approachf(sc->cam_theta, BH_PI * 0.5f + off * cosf(t * 0.29f), 1.5f, dt);
         break;
+    }
     default:
         /* Orbit: the camera actually travels, so near and far lensed images of
          * the same star shift against each other. That parallax is what makes
@@ -726,11 +761,4 @@ void scene_update(Scene *sc, const Settings *s, float dt, int manual) {
         break;
     }
     if (sc->cam_phi > 2.f * BH_PI) sc->cam_phi -= 2.f * BH_PI;
-
-    /* Once they have been idle a while, the view they aimed drifts back to
-     * facing the hole - slowly enough that it is never caught doing it. */
-    if (!manual) {
-        sc->yaw   = approachf(sc->yaw,   0.f, 6.f, dt);
-        sc->pitch = approachf(sc->pitch, 0.f, 6.f, dt);
-    }
 }
