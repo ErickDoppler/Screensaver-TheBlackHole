@@ -137,7 +137,9 @@ static int passive(const App *a) {
 }
 
 static void reset_view(App *a) {
+    /* Back to facing the hole; Yaw and Tumble carry on turning from there. */
     a->sc.yaw = a->sc.pitch = 0.f;
+    a->sc.auto_yaw = a->sc.auto_pitch = a->sc.auto_roll = 0.f;
     a->took_control = 0;
 }
 
@@ -388,7 +390,7 @@ int app_run(const AppConfig *cfg) {
         a.sc.r_base = scene_radius_for_coverage(a.sc.coverage, a.sc.fov_base);
         a.sc.cam_r = a.sc.r_base;
     }
-    if (cfg->start_theta > 0.f) a.sc.cam_theta = BH_PI * 0.5f + cfg->start_theta;
+    if (cfg->start_theta > 0.f) a.sc.cam_theta = a.sc.theta_base = BH_PI * 0.5f + cfg->start_theta;
     if (cfg->start_outer > 0.f) a.sc.disk_outer = cfg->start_outer;
     if (cfg->start_cover > 0.f || cfg->start_theta > 0.f || cfg->start_outer > 0.f ||
         cfg->start_fov > 0.f)
