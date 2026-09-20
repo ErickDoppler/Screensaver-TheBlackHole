@@ -24,6 +24,15 @@ void settings_clamp(Settings *s) {
 #undef X
     /* Every scene switched off would leave nothing to show. */
     if (s->scene_mask == 0) s->scene_mask = SCENE_ALL;
+    /* Somebody who had every scene on before new ones were added meant every
+     * scene, so the new ones join the rotation instead of arriving switched
+     * off and never being found. Anyone with a hand-picked selection keeps it.
+     * One entry per release that added scenes: the mask that meant "all" then.
+     *   0x3FF  the original ten
+     *   0x7FF  plus Binary in dust */
+    static const unsigned meant_everything[] = { 0x3FFu, 0x7FFu };
+    for (size_t i = 0; i < sizeof meant_everything / sizeof *meant_everything; ++i)
+        if ((unsigned)s->scene_mask == meant_everything[i]) s->scene_mask = SCENE_ALL;
     /* The post-merger hole is only reachable when mergers are allowed. */
     if (!s->event_merger) s->scene_mask &= ~(1 << SCENE_AFTERMATH);
 }
@@ -69,7 +78,8 @@ const char *settings_rotate_mode_name(int m) {
 
 static const char *const scene_names[SCENE_COUNT] = {
     "void", "fed", "feeding", "evaporating", "stardust",
-    "binary-void", "binary-fed", "nebula", "core", "aftermath"
+    "binary-void", "binary-fed", "nebula", "core", "aftermath",
+    "binary-dust", "wide-void", "wide-fed", "wide-dust"
 };
 
 const char *settings_scene_name(int scene) {

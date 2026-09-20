@@ -39,6 +39,14 @@ uniform vec3  uDiskY;
 // What lies in the disk plane:
 //   0 nothing   1 an accretion disk   2 scattered flashes   3 disk + tidal stream
 uniform int   uDiskMode;
+
+// Knots of scooped rubble burning in the plane, from the simulation:
+// (orbital radius, azimuth at ignition, age in seconds, age on the disk clock).
+#define BH_FLARE_MAX 24
+uniform vec4  uFlare[BH_FLARE_MAX];
+uniform int   uFlareCount;
+uniform float uFlareLife;
+uniform float uFlareSpin;   // how fast a knot is wound, set per scene
 uniform float uOuterReach;    // furthest crossing radius worth testing, in M
 uniform float uDiskInner;     // ISCO, which moves in as the hole spins up
 uniform float uDiskOuter;
@@ -240,33 +248,76 @@ vec3 disk_emission(float rc, vec3 p) {
     return tint * e;
 }
 
-// Rubble the hole has scooped up: no disk, just flashes. Each knot lights as it
-// is compressed, fades, and is carried round by the same Keplerian clock the
-// disk uses - so the flashes bend with the light and drift with the gravity
-// exactly as the disk would, which is the whole reason for putting them in the
-// plane instead of painting them onto the screen.
+// Rubble the hole has scooped up: no disk, just what it is burning right now.
+// The simulation ignites one knot every second or two and hands them over as
+// this array - x: orbital radius, y: the azimuth it lit at, z: its age in
+// seconds, w: the same age on the disk's own clock, which is what winds it.
+//
+// A knot is not a spark hanging in space. It sits on an orbit, and the orbit
+// shears it: gas a little further in laps gas a little further out, so the
+// point is drawn within seconds into a stripe wound along the path an
+// accretion disk would take. Meanwhile the compression keeps heating it, so
+// its light climbs out of the red, through white, into the blue and finally
+// out of the visible band - it goes out by going ultraviolet, not by cooling.
 vec3 flash_emission(float rc, vec3 p) {
+    if (uFlareCount <= 0) return vec3(0.0);
     float az = atan(dot(p, uDiskY), dot(p, uDiskX));
-    float spin_t = uDiskTime * pow(rc, -1.5);
-    float ang = az - spin_t * 16.0;                // into the co-rotating frame
+    // Keplerian: the angle this radius has carried its gas through since the
+    // knot lit. Far slower than the rate the disk's texture is sheared at -
+    // that one laps the frame several times a second, which here would wind
+    // every stripe into a closed ring within a second and leave the eye with
+    // concentric circles. This is slow enough that a stripe stays a stripe for
+    // its whole life, and the inner end still visibly outruns the outer one.
+    float omega = pow(max(rc, 1.0), -1.5) * uFlareSpin;
 
-    float n    = az_noise(ang, 4.2, rc * 0.8);
-    float seed = az_noise(ang, 4.2, rc * 0.8 + 57.0);
-    // Each knot keeps its own phase, so they do not all flash together.
-    float ph  = fract(uDiskTime * 0.22 + seed);
-    float env = pow(clamp(sin(ph * 3.14159265), 0.0, 1.0), 4.0);
-    float knot = pow(clamp(n - 0.60, 0.0, 1.0) * 2.9, 2.0);
+    vec3 sum = vec3(0.0);
+    for (int i = 0; i < uFlareCount; ++i) {
+        vec4 f = uFlare[i];
+        float k = clamp(f.z / uFlareLife, 0.0, 1.0);   // 0 at ignition, 1 spent
 
-    // Only in the band where the bending is worth seeing them against.
-    float band = smoothstep(uDiskInner * 0.9, uDiskInner * 1.5, rc) *
-                 (1.0 - smoothstep(uOuterReach * 0.55, uOuterReach, rc));
-    float e = 11.0 * knot * env * band;
-    if (e <= 0.0) return vec3(0.0);
+        // Across the stripe: the knot starts compact and is pulled out
+        // radially as it goes, which is what lets the shear wind it.
+        /* the stripe thickens with its own radius, so a knot a hundred
+           radii out is a band of gas and not a wire */
+        float wr = f.x * mix(0.025, 0.11, k) + 0.4;
+        float dr = (rc - f.x) / wr;
+        float radial = exp(-dr * dr);
+        if (radial < 0.003) continue;
 
-    float hot = clamp(1.0 - (rc - uDiskInner) / 26.0, 0.0, 1.0);
-    vec3 tint = mix(uDiskColor, vec3(1.0, 0.97, 0.92), hot * hot);
-    if (uRedshift > 0.5) e *= mix(1.0, sqrt(max(1.0 - 2.0 / rc, 0.02)), 0.6);
-    return tint * e;
+        // Along it: where this radius has carried the gas to by now. The
+        // filament thins as it is stretched, but never past what one plane
+        // crossing per step can resolve - thinner than that and the stripe
+        // breaks into a dashed ring, which is sampling, not gas.
+        float d = az - (f.y + omega * f.w);
+        d = atan(sin(d), cos(d));                      // shortest way round
+        float wid = mix(0.45, 0.14, smoothstep(0.0, 0.3, k));
+        float along = exp(-(d * d) / (wid * wid));
+        // Burning gas is not a smooth tube: knots and gaps along its length,
+        // carried with it rather than sitting still in the frame.
+        along *= 0.55 + 0.9 * az_noise(f.y + omega * f.w + d * 3.0, 3.5, f.x + f.w * 0.2);
+
+        // Ignition: a compact point, far brighter than the stripe it becomes.
+        float spark = exp(-f.z * f.z * 26.0) * exp(-(d * d) / 0.02);
+
+        // Bright while it is still mostly visible light, then the peak leaves
+        // the band and the eye loses it even though it is hotter than ever.
+        float vis = (1.0 - k) * exp(-3.4 * k * k);
+        float e = (7.5 * along + 34.0 * spark) * radial * vis;
+        if (e <= 0.0) continue;
+
+        // Ember -> white -> blue -> the violet edge of what an eye can see.
+        vec3 warm   = mix(uDiskColor, vec3(1.0, 0.72, 0.38), 0.5);
+        vec3 white  = vec3(1.0, 0.97, 0.94);
+        vec3 blue   = vec3(0.62, 0.80, 1.00);
+        vec3 violet = vec3(0.60, 0.45, 1.00);
+        vec3 tint = mix(warm, white, smoothstep(0.0, 0.18, k));
+        tint = mix(tint, blue,   smoothstep(0.20, 0.62, k));
+        tint = mix(tint, violet, smoothstep(0.62, 1.00, k));
+
+        if (uRedshift > 0.5) e *= mix(1.0, sqrt(max(1.0 - 2.0 / rc, 0.02)), 0.6);
+        sum += tint * e;
+    }
+    return sum;
 }
 
 // ---------------------------------------------------------------------------

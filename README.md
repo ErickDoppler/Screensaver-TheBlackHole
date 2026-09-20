@@ -253,7 +253,12 @@ Two stages, and the split is the whole design:
 
 The **binary scenes** cannot use that shortcut: a second mass off the ray's
 plane pulls the light out of it. They march in full 3D instead, summing each
-hole's pull with the angular momentum about that hole.
+hole's pull with the angular momentum about that hole. A close pair shares one
+gravitational figure; a **wide pair** is far enough apart to read as two
+objects, and when it is feeding the two sit in the cavity of a single shared
+sheet - a whirlpool wound round each hole, two spiral arms carried round by
+the orbit, and the pair's wake running outward through the gas as a train of
+ripples.
 
 Geometric units, `M = 1`: the horizon is at `r = 2`, the photon sphere at
 `r = 3`, the shadow's edge at an impact parameter of `3*sqrt(3) = 5.196`.
@@ -271,6 +276,19 @@ frame budget on the first run and remembers where it landed.
 creep out from an impact and sensor pixels die one at a time, then everything
 heals over the heal time, stays clean for the grace period again, and the next
 round begins.
+
+**Flying chips the glass.** Take the keys and the camera runs into the dust it
+is flying through. Each grain leaves a pit or a narrow scratch in the coating
+and flashes as it breaks - triboluminescence, the cold spark of cracking
+quartz - and the mark scatters light until the coating anneals it away over
+the next five to fifteen seconds. Its own setting, *Flying chips the optics*,
+separate from Camera damage: that one is wear over time, this one is yours.
+
+**Burning rubble.** In the scooped-rubble scenes a knot of debris lights every
+second or two, and it does not sit still: it is on an orbit, so the shear
+draws it out into a stripe wound along the disk's own path, while compression
+keeps heating it. It fades by going blue and then violet - out of the visible
+band rather than cooling through red.
 
 ## Command line
 
@@ -307,7 +325,8 @@ arguments with `/S`. To pass developer switches, run it from `cmd`, or copy
 it to a `.exe`.
 
 Scene names: `void`, `fed`, `feeding`, `evaporating`, `stardust`,
-`binary-void`, `binary-fed`, `nebula`, `core`, `aftermath`.
+`binary-void`, `binary-fed`, `nebula`, `core`, `aftermath`, `binary-dust`,
+`wide-void`, `wide-fed`, `wide-dust`.
 
 Setting keys (see `src/settings.h` for ranges and defaults):
 
@@ -316,7 +335,8 @@ Setting keys (see `src/settings.h` for ranges and defaults):
   `exit-on-any-key`, `rotate-360`, `rotate-mode` (orbit/yaw/tumble),
   `rotate-seconds`, `warp-minutes`, `fov`
 * **Particles and light:** `star-count`, `particle-size`, `ghost-tail`,
-  `blur`, `twinkle`, `natural-star-color`, `bloom`
+  `blur`, `twinkle`, `natural-star-color`, `bloom`, `dust-marks` (grit pits
+  the optics while you fly)
 * **Physics:** `spin`, `lensing`, `doppler` (interstellar/true), `redshift`,
   `higher-order`, `time-dilation`
 * **Events and scenes:** `jets`, `event-merger`, `event-fallin`,

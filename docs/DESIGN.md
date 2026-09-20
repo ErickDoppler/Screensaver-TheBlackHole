@@ -96,7 +96,7 @@ across three 4K monitors it is a space heater.
 
 ## 3. Scenes
 
-Ten. Cycled in random order with no immediate repeat (the shuffled-deck logic
+Fourteen. Cycled in random order with no immediate repeat (the shuffled-deck logic
 from The Black Wall's figures). Each can be enabled or disabled.
 
 | # | Scene | Description |
@@ -111,6 +111,10 @@ from The Black Wall's figures). Each can be enabled or disabled.
 | 8 | **Nebula backdrop** | A hole crossing a nebula. The one scene with real colour; the nebula lenses into arcs. |
 | 9 | **Galactic core** | Supermassive, dense star field, a few stars on visibly fast orbits (the Sgr A* / S2 look). Sells scale better than anything else. |
 | 10 | **Merger aftermath** | Only reachable when the **Merger completes** event is on: a single larger hole with a disk still settling and a ringdown wobble dying out. |
+| 11 | **Binary in dust** | Scene 6 plus the rubble the pair is sweeping up: knots light as they are crushed and are wound into stripes by an orbit two centres are stirring at once. |
+| 12 | **Wide pair, void** | Two holes far enough apart to read as two objects rather than one shared figure, each with its own ring, nothing between them but sky. |
+| 13 | **Wide pair, shared disk** | A disk around each hole, and a stream of gas running across the gap from one to the other - bowed by the pair turning under it, and shock-lit where it lands. |
+| 14 | **Wide pair in dust** | A wide pair sweeping up rubble: the knots orbit the two of them together, so a stripe wound round the system kinks as it passes each hole. |
 
 **Conveying distance in scene 3.** A long stream is not by itself convincing.
 The scale reads from: the doomed star rendered visibly tiny and tidally

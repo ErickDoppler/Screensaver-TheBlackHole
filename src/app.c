@@ -441,10 +441,10 @@ int app_run(const AppConfig *cfg) {
         a.frames++;
         if (cfg->trace && a.frames % 30 == 0)
             plat_log("t=%5.1f  phi=%6.3f  theta=%5.2f  r=%6.2f  fov=%5.1f  disk_t=%8.2f  "
-                     "speed=%4.2f  manual=%d  q=%d  dt=%.4f",
+                     "speed=%4.2f  manual=%d  grit=%d  flare=%d  q=%d  dt=%.4f",
                      a.elapsed, a.sc.cam_phi, a.sc.cam_theta, a.sc.cam_r,
                      a.sc.fov * 180.f / BH_PI, a.sc.disk_time, a.sc.speed,
-                     manual_control(&a), a.quality, dt);
+                     manual_control(&a), a.sc.grit_n, a.sc.flare_n, a.quality, dt);
 
         if (cfg->dump_path && cfg->frame_limit > 0 && a.frames >= cfg->frame_limit) {
             if (render_dump_png(&a.r, cfg->dump_path)) plat_log("wrote %s", cfg->dump_path);

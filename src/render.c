@@ -395,7 +395,10 @@ void render_frame(Renderer *r, const Settings *s, const Scene *sc, float time, f
     set1f(lens, "uLensing", sc->lensing);
     /* The pair is marched in three dimensions, so it pays per step: it is
      * let go as soon as the field is too weak to bend anything. */
-    set1f(lens, "uEscapeR", sc->binary ? 320.f : ESCAPE_R);
+    /* A wide pair can be hundreds of radii across, and the camera sits further
+     * out again: letting rays go at a fixed 320 would cut the far hole's gas
+     * off mid-frame. */
+    set1f(lens, "uEscapeR", sc->binary ? fmaxf(320.f, sc->cam_r * 1.8f) : ESCAPE_R);
     /* The mip level has to be chosen here, since the shader cannot work it out
      * from its own derivatives. One screen pixel subtends this much sky; the
      * cube map has this much resolution. Where the shot is wide and the stars
@@ -425,6 +428,24 @@ void render_frame(Renderer *r, const Settings *s, const Scene *sc, float time, f
         set3v(lens, "uHoleB", sc->hole_b);
         set1f(lens, "uMassA", sc->mass_a);
         set1f(lens, "uMassB", sc->mass_b);
+    }
+    /* The knots burning in the plane. Locations resolve to -1 on the binary
+     * program, which has no rubble of its own, and setting those is a no-op. */
+    {
+        float flare[BH_FLARE_MAX * 4];
+        int n = sc->disk_mode == 2 ? sc->flare_n : 0;
+        if (n > BH_FLARE_MAX) n = BH_FLARE_MAX;
+        for (int i = 0; i < n; ++i) {
+            flare[i * 4 + 0] = sc->flare[i].r;
+            flare[i * 4 + 1] = sc->flare[i].az;
+            flare[i * 4 + 2] = sc->flare[i].age;
+            flare[i * 4 + 3] = sc->flare[i].shear;
+        }
+        set1i(lens, "uFlareCount", n);
+        set1f(lens, "uFlareLife", BH_FLARE_LIFE);
+        set1f(lens, "uFlareSpin", sc->flare_spin > 0.f ? sc->flare_spin : 3.2f);
+        if (n > 0)
+            glUniform4fv(glGetUniformLocation(lens, "uFlare"), n, flare);
     }
     set1f(lens, "uDiskInner", sc->disk_inner);
     set1f(lens, "uDiskOuter", sc->disk_outer);
@@ -570,7 +591,8 @@ void render_frame(Renderer *r, const Settings *s, const Scene *sc, float time, f
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glViewport(0, 0, r->width, r->height);
     int hurt = sc->dmg_glass > 0.002f || sc->dmg_matrix > 0.002f ||
-               sc->dmg_bloom > 0.002f || sc->dmg_tear > 0.002f;
+               sc->dmg_bloom > 0.002f || sc->dmg_tear > 0.002f ||
+               sc->grit_n > 0;
     if (hurt) {
         unsigned p = r->prog_damage;
         glUseProgram(p);
@@ -585,6 +607,28 @@ void render_frame(Renderer *r, const Settings *s, const Scene *sc, float time, f
         set_color(p, "uDeadColor", settings_damage_rgb(s));
         set1f(p, "uGreenPurple", s->damage_palette == DMG_GREEN_PURPLE ? 1.f : 0.f);
         glUniform2f(glGetUniformLocation(p, "uImpact"), sc->dmg_impact_x, sc->dmg_impact_y);
+
+        /* Grit marks: where each one is and how far it has annealed, plus the
+         * spark, which is bright for a sixth of a second and then done. */
+        float ga[BH_GRIT_MAX * 4], gb[BH_GRIT_MAX * 4];
+        int n = sc->grit_n > BH_GRIT_MAX ? BH_GRIT_MAX : sc->grit_n;
+        for (int i = 0; i < n; ++i) {
+            const Grit *g = &sc->grit[i];
+            float t01 = g->life > 0.f ? clampf(g->age / g->life, 0.f, 1.f) : 1.f;
+            ga[i * 4 + 0] = g->x;
+            ga[i * 4 + 1] = g->y;
+            ga[i * 4 + 2] = t01;
+            ga[i * 4 + 3] = g->size;
+            gb[i * 4 + 0] = g->dx;
+            gb[i * 4 + 1] = g->dy;
+            gb[i * 4 + 2] = g->len;
+            gb[i * 4 + 3] = expf(-g->age / 0.16f);
+        }
+        set1i(p, "uGritCount", n);
+        if (n > 0) {
+            glUniform4fv(glGetUniformLocation(p, "uGritA"), n, ga);
+            glUniform4fv(glGetUniformLocation(p, "uGritB"), n, gb);
+        }
     } else {
         glUseProgram(r->prog_blit);
         glBindTexture(GL_TEXTURE_2D, src_tex);

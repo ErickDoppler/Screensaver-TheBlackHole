@@ -109,7 +109,7 @@ static INT_PTR g_result;
 
 /* How much taller the dialog gets, and how far the buttons move, when the
  * scene section is revealed. Dialog units, matching the .rc. */
-#define SCENES_EXTRA_DU 84
+#define SCENES_EXTRA_DU 100
 
 static HWND item(HWND dlg, int id) { return GetDlgItem(dlg, id); }
 
@@ -240,6 +240,7 @@ static void settings_to_controls(HWND dlg) {
     set_slider(dlg, IDC_BLUR, 0, 100, g_s.blur);
     set_slider(dlg, IDC_TWINKLE, 0, 100, g_s.twinkle);
     set_check(dlg, IDC_NATURAL, g_s.natural_star_color);
+    set_check(dlg, IDC_DUSTMARKS, g_s.dust_marks);
 
     set_slider(dlg, IDC_SPIN, 0, 999, g_s.spin);
     set_slider(dlg, IDC_LENSING, 50, 300, g_s.lensing);
@@ -291,6 +292,7 @@ static void controls_to_settings(HWND dlg) {
     g_s.blur               = get_slider(dlg, IDC_BLUR);
     g_s.twinkle            = get_slider(dlg, IDC_TWINKLE);
     g_s.natural_star_color = get_check(dlg, IDC_NATURAL);
+    g_s.dust_marks         = get_check(dlg, IDC_DUSTMARKS);
 
     g_s.spin               = get_slider(dlg, IDC_SPIN);
     g_s.lensing            = get_slider(dlg, IDC_LENSING);

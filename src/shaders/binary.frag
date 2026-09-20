@@ -41,7 +41,8 @@ uniform float uMassA, uMassB;
 
 // A circumbinary disk, when they are feeding. It lies in the orbital plane and
 // is warped by the pair beneath it.
-uniform int   uDiskMode;      // 0 = none, 1 = circumbinary disk
+uniform int   uDiskMode;      // 0 none, 1 circumbinary disk, 2 burning rubble,
+                              // 4 a disk round each hole, bridged across the gap
 uniform vec3  uDiskNormal, uDiskX, uDiskY;
 uniform float uDiskInner, uDiskOuter, uDiskBright, uDiskTime;
 uniform float uRedshift;
@@ -75,12 +76,203 @@ float az_noise(float az, float k, float radial) {
     return vnoise(vec2(cos(az), sin(az)) * k + vec2(radial, radial * 0.37));
 }
 
+// Banded turbulence, as the single-hole disk uses: the gas is sheared into
+// filaments that run along the flow. Sampled on a circle so it is periodic in
+// the azimuth and the coordinates stay small however long the disk has turned.
+float disk_texture(float radius, float angle) {
+    float v = 0.0, amp = 0.5, fr = 1.0;
+    float a = angle + radius * 1.9;
+    vec2 dir = vec2(cos(a), sin(a));
+    for (int i = 0; i < 4; ++i) {
+        vec2 c = dir * (3.0 * fr) + vec2(radius * 0.9, radius * 0.31) * fr;
+        v += amp * vnoise(c);
+        amp *= 0.5;
+        fr *= 2.3;
+    }
+    return v;
+}
+
+// A hot body seen through a Doppler shift: blue and bright coming at us, red
+// and dim going away.
+vec3 doppler_tint(vec3 base, float shift) {
+    float s = clamp(shift, 0.25, 4.0);
+    return base * mix(vec3(1.00, 0.42, 0.12), vec3(0.62, 0.78, 1.00),
+                      clamp((s - 0.6) / 1.2, 0.0, 1.0));
+}
+
 // The pull of one centre, with its own h^2 = |d x v|^2 about that centre.
 vec3 pull(vec3 d, vec3 v, float m) {
     float r2 = dot(d, d);
     if (r2 < 1e-4) return vec3(0.0);
     vec3 c = cross(d, v);
     return -(3.0 * uLensing * m * dot(c, c) / (r2 * r2 * sqrt(r2))) * d;
+}
+
+// Knots of scooped rubble burning in the pair's plane, the same list the
+// single-hole shader draws: (orbital radius, azimuth at ignition, age in
+// seconds, age on the disk clock). Out here they orbit the pair's common
+// centre, well outside the two holes, because nothing survives between them.
+#define BH_FLARE_MAX 24
+uniform vec4  uFlare[BH_FLARE_MAX];
+uniform int   uFlareCount;
+uniform float uFlareLife;
+uniform float uFlareSpin;   // how fast a knot is wound, set per scene
+
+// One knot, sheared along its orbit and heating past the visible band as it
+// goes. See the same function in lens.frag for what each part is doing.
+vec3 flare_emission(float rc, vec3 p) {
+    if (uFlareCount <= 0) return vec3(0.0);
+    float az = atan(dot(p, uDiskY), dot(p, uDiskX));
+    float omega = pow(max(rc, 1.0), -1.5) * uFlareSpin;
+
+    vec3 sum = vec3(0.0);
+    for (int i = 0; i < uFlareCount; ++i) {
+        vec4 f = uFlare[i];
+        float k = clamp(f.z / uFlareLife, 0.0, 1.0);
+
+        /* the stripe thickens with its own radius, so a knot a hundred
+           radii out is a band of gas and not a wire */
+        float wr = f.x * mix(0.025, 0.11, k) + 0.4;
+        float dr = (rc - f.x) / wr;
+        float radial = exp(-dr * dr);
+        if (radial < 0.003) continue;
+
+        float d = az - (f.y + omega * f.w);
+        d = atan(sin(d), cos(d));
+        float wid = mix(0.45, 0.14, smoothstep(0.0, 0.3, k));
+        float along = exp(-(d * d) / (wid * wid));
+        along *= 0.55 + 0.9 * az_noise(f.y + omega * f.w + d * 3.0, 3.5, f.x + f.w * 0.2);
+
+        float spark = exp(-f.z * f.z * 26.0) * exp(-(d * d) / 0.02);
+        float vis = (1.0 - k) * exp(-3.4 * k * k);
+        float e = (7.5 * along + 34.0 * spark) * radial * vis;
+        if (e <= 0.0) continue;
+
+        vec3 warm   = mix(uDiskColor, vec3(1.0, 0.72, 0.38), 0.5);
+        vec3 tint = mix(warm, vec3(1.0, 0.97, 0.94), smoothstep(0.0, 0.18, k));
+        tint = mix(tint, vec3(0.62, 0.80, 1.00), smoothstep(0.20, 0.62, k));
+        tint = mix(tint, vec3(0.60, 0.45, 1.00), smoothstep(0.62, 1.00, k));
+
+        if (uRedshift > 0.5)
+            e *= mix(1.0, sqrt(max(1.0 - 2.0 * uMassA / max(rc, 2.1), 0.02)), 0.6);
+        sum += tint * e;
+    }
+    return sum;
+}
+
+// One disk, shared.
+//
+// Two holes this close do not each keep a disk: they clear a cavity and sit
+// inside one enormous sheet that belongs to both of them. The pair is a
+// rotating pair of masses, so it drives the sheet rather than just orbiting in
+// it, and three things come out of that - all of them visible in the picture:
+//
+//   * TWO SPIRAL ARMS, because a binary's potential has two lobes. They are
+//     the pattern the pair carves as it turns, so they turn with the pair and
+//     wind outward rather than sitting still.
+//   * A BRIGHT CORE, where streams reach off the cavity wall and feed each
+//     hole. The two curl in opposite directions round their own hole, which is
+//     what makes the middle read as an S rather than as a blob.
+//   * RIPPLES, running outward across the whole sheet. Each pass of the pair
+//     kicks the gas again, so the wake is a train of rings - the only thing in
+//     the picture that says the two shadows at the centre are doing work on
+//     everything around them.
+//
+// The sheet is cool: it is enormous, and gas that far out has had time to
+// spread and to radiate. So the colour runs from a cream-white core, through
+// gold where the arms are still being squeezed, to a grey-teal at the rim.
+vec3 shared_disk(vec3 p, float rc) {
+    float az = atan(dot(p, uDiskY), dot(p, uDiskX));
+    float sep = max(length(uHoleB - uHoleA), 1e-3);
+
+    // Where the pair is pointing now: everything the binary drives is keyed to
+    // this, so the whole figure turns with the orbit.
+    vec3 toA = uHoleA - uDiskNormal * dot(uHoleA, uDiskNormal);
+    float azA = atan(dot(toA, uDiskY), dot(toA, uDiskX));
+
+    vec3 sum = vec3(0.0);
+
+    // --- the middle: a whirlpool round each hole ----------------------------
+    // Each hole has wound the gas nearest it into a spiral of its own, and the
+    // two spirals meet where the holes face each other. They curl the way the
+    // pair turns, so the pair reads as one S-shaped figure rather than as two
+    // unrelated eddies - and which way the S lies follows the orbit.
+    if (rc < uDiskInner * 1.45) {
+        for (int i = 0; i < 2; ++i) {
+            vec3 hole = i == 0 ? uHoleA : uHoleB;
+            float m = i == 0 ? uMassA : uMassB;
+            vec3 d = p - hole;
+            d -= uDiskNormal * dot(d, uDiskNormal);
+            float rl = length(d);
+            float horizon = 2.6 * m;
+            float reach = sep * 0.78;
+            if (rl < horizon || rl > reach) continue;
+
+            // Two trailing arms, wound as a log spiral. The sign of the log
+            // term is what sets the curl; it follows the rotation, so the
+            // whole figure turns the way the pair does.
+            float al = atan(dot(d, uDiskY), dot(d, uDiskX));
+            float wind = 2.0 * al + 3.1 * log(max(rl / horizon, 1.0)) - 2.0 * azA;
+            float arm = pow(0.5 + 0.5 * cos(wind), 1.5);
+
+            float x = clamp((rl - horizon) / max(reach - horizon, 1e-3), 0.0, 1.0);
+            float body = smoothstep(0.0, 0.06, x) * pow(1.0 - x, 1.1);
+            float turb = disk_texture(rl / max(m, 0.05) * 0.25 + uDiskTime * 0.06,
+                                      al + 1.2 * log(max(rl, 1.0)));
+            float e = 1.15 * uDiskBright * body * (0.22 + 0.5 * turb + 1.5 * arm);
+
+            // The bands nearest the hole are the hottest gas in the picture
+            // and read blue-white; further out they cool through cream into
+            // the gold of the sheet.
+            vec3 hot  = vec3(0.80, 0.90, 1.00);
+            vec3 warm = vec3(1.00, 0.88, 0.68);
+            vec3 tint = mix(hot, warm, smoothstep(0.05, 0.55, x));
+            tint = mix(tint, mix(uDiskColor, vec3(1.0, 0.72, 0.42), 0.5),
+                       smoothstep(0.45, 1.0, x));
+            sum += tint * e;
+        }
+    }
+
+    // --- the sheet ----------------------------------------------------------
+    if (rc > uDiskInner) {
+        float x01 = clamp((rc - uDiskInner) / max(uDiskOuter - uDiskInner, 1e-3), 0.0, 1.0);
+
+        // Two arms, winding outward as a log spiral and carried round by the
+        // pair. Logarithmic because that is what a pattern driven at one radius
+        // and sheared by a Keplerian flow becomes.
+        float wind = 2.0 * (az - azA) - 3.4 * log(max(rc / uDiskInner, 1.0));
+        float arms = 0.5 + 0.5 * cos(wind);
+        arms = pow(arms, 2.4);
+
+        // Ripples: every turn of the pair sends another crest out through the
+        // sheet, so they are evenly spaced in radius and travel outward.
+        float wave = 6.283185 * (rc / (uDiskInner * 0.62) - uDiskTime * 0.22);
+        float ripple = 0.5 + 0.5 * cos(wave);
+        ripple = mix(1.0, ripple, 0.7 * smoothstep(0.02, 0.22, x01));
+
+        // A little turbulence so the rings are gas and not a diffraction chart
+        float t = disk_texture(rc / uDiskInner * 0.8 + uDiskTime * 0.05,
+                               az + 0.6 * log(max(rc, 1.0)));
+
+        float prof = smoothstep(0.0, 0.05, x01) * pow(1.0 - x01, 1.15);
+        float e = 0.5 * uDiskBright * prof * ripple *
+                  (0.22 + 0.45 * t + 1.9 * arms);
+
+        // Cream at the cavity wall, gold along the arms, cool grey out at the
+        // rim where the sheet is thin and old.
+        vec3 core = vec3(1.00, 0.95, 0.86);
+        vec3 gold = mix(uDiskColor, vec3(1.0, 0.82, 0.55), 0.55);
+        vec3 cold = vec3(0.42, 0.56, 0.60);
+        vec3 tint = mix(core, gold, smoothstep(0.0, 0.22, x01));
+        tint = mix(tint, cold, smoothstep(0.12, 0.55, x01));
+        // the arms are hotter than the gas between them
+        tint = mix(tint, mix(tint, vec3(1.0, 0.93, 0.82), 0.6), arms);
+
+        if (uRedshift > 0.5)
+            e *= mix(1.0, sqrt(max(1.0 - 2.0 / max(rc, 2.1), 0.02)), 0.4);
+        sum += tint * e;
+    }
+    return sum;
 }
 
 // Deflection from both centres at once. This is the whole physics of the
@@ -149,14 +341,18 @@ void main() {
         vec3 a1 = accel(x_new, v_pred);
         v = normalize(v + 0.5 * (a0 + a1) * step);
 
-        // --- the circumbinary disk ----------------------------------------
-        if (uDiskMode == 1) {
+        // --- whatever is orbiting the pair in their plane -------------------
+        if (uDiskMode != 0) {
             float h_new = dot(x_new, uDiskNormal);
             if (h_new * prev_h < 0.0) {
                 float f = prev_h / (prev_h - h_new);
                 vec3 p = mix(x, x_new, f);
                 float rc = length(p - uDiskNormal * dot(p, uDiskNormal));
-                if (rc > uDiskInner && rc < uDiskOuter) {
+                if (uDiskMode == 2) {
+                    if (rc > uDiskInner && rc < uEscapeR) accum += flare_emission(rc, p);
+                } else if (uDiskMode == 4) {
+                    if (rc < uDiskOuter) accum += shared_disk(p, rc);
+                } else if (rc > uDiskInner && rc < uDiskOuter) {
                     float az = atan(dot(p, uDiskY), dot(p, uDiskX));
                     float omega = pow(max(rc, 1.0), -1.5);
                     float st = uDiskTime * omega;

@@ -24,6 +24,14 @@ enum {
     SCENE_NEBULA,          /* crossing a nebula; it lenses into arcs */
     SCENE_CORE,            /* galactic core: supermassive, dense field */
     SCENE_AFTERMATH,       /* post-merger hole, disk still settling */
+    /* Appended, not inserted: the scene mask is stored as bits, and moving
+     * one would silently turn a different scene off for everybody. */
+    SCENE_BINARY_DUST,     /* two holes with scooped rubble burning around them */
+    /* A wide pair: far enough apart that each is its own object with its own
+     * gas, rather than two shadows inside one shared figure. */
+    SCENE_WIDE_VOID,       /* two distant holes, nothing between them but sky */
+    SCENE_WIDE_FED,        /* a disk round each, joined by a bridge of gas */
+    SCENE_WIDE_DUST,       /* rubble burning across the gap between them */
     SCENE_COUNT
 };
 #define SCENE_ALL ((1 << SCENE_COUNT) - 1)
@@ -52,6 +60,11 @@ enum {
     X(blur,               "blur",               10,     0,   100)  \
     X(twinkle,            "twinkle",            15,     0,   100)  \
     X(natural_star_color, "natural-star-color", 0,      0,   1)    \
+    /* Flying through the near-field dust chips the front element: pits,
+     * scratches, and the spark as each grain breaks. Its own setting rather
+     * than part of Camera damage, which is wear over time - this is caused by
+     * the user and stops the moment they stop flying. */                  \
+    X(dust_marks,         "dust-marks",         1,      0,   1)    \
     /* How far the disk's light floods out past its own outline. Light that
      * bright does not stay inside its edges - it swamps the lens and the
      * sensor, and without it a furnace reads as a picture of a furnace. */ \

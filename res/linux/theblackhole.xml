@@ -45,6 +45,7 @@
     <number id="twinkle" type="slider" arg="--twinkle %"
             _label="Star twinkle" _low-label="Steady" _high-label="Lively"
             low="0" high="100" default="15"/>
+    <boolean id="dustmarks" _label="Flying chips the optics" arg-unset="--no-dust-marks"/>
     <number id="bloom" type="slider" arg="--bloom %"
             _label="Bloom" _low-label="None" _high-label="Blinding"
             low="0" high="100" default="42"/>

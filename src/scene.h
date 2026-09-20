@@ -40,6 +40,29 @@ typedef enum WarpPhase {
 /* Seconds of no input before the screensaver takes the camera back. */
 #define IDLE_RESUME   20.f
 
+/* Scooped rubble lighting up in the plane (the Stardust scene), and grit
+ * hitting the front element while the camera is being flown. Both are lists of
+ * events the shaders read as uniform arrays, so the limits are small. */
+#define BH_FLARE_MAX  24
+#define BH_GRIT_MAX   12
+/* How long one flare takes to go from ignition to past the visible band. */
+#define BH_FLARE_LIFE 25.f
+
+typedef struct Flare {
+    float r;          /* orbital radius of the knot, in M */
+    float az;         /* where it lit, in the disk's own frame */
+    float age;        /* seconds since ignition */
+    float shear;      /* disk-clock seconds since ignition: the winding */
+} Flare;
+
+typedef struct Grit {
+    float x, y;       /* where it struck the glass, in UV */
+    float age, life;  /* seconds, and how long this mark takes to anneal */
+    float dx, dy;     /* scratch direction */
+    float len;        /* 0 = a crater, > 0 = a scratch this long */
+    float size;
+} Grit;
+
 typedef struct Scene {
     int    kind;              /* SCENE_* */
     float  time;              /* seconds since this scene began */
@@ -139,6 +162,18 @@ typedef struct Scene {
     float  dmg_phase_t;       /* seconds left in rest or wear */
     float  dmg_pend_glass, dmg_pend_matrix;
     float  dmg_heal_glass, dmg_heal_matrix;   /* heal rates, per second */
+
+    /* Rubble flaring in the plane: one knot every second or two, wound into a
+     * stripe by the orbit it sits on. */
+    Flare  flare[BH_FLARE_MAX];
+    int    flare_n;
+    float  flare_next;        /* seconds to the next ignition */
+    float  flare_spin;        /* how hard the orbit winds them, per scene */
+
+    /* Grit on the front element, thrown up by flying. */
+    Grit   grit[BH_GRIT_MAX];
+    int    grit_n;
+    float  grit_next;         /* fractional hits owed, at the current speed */
 } Scene;
 
 void scene_init(Scene *sc, const Settings *s, unsigned seed);

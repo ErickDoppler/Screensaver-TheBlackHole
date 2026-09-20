@@ -24,6 +24,16 @@ uniform vec3  uDeadColor;     // the matrix palette
 uniform float uGreenPurple;   // 1 = the two-tone palette, mixed per pixel
 uniform vec2  uImpact;        // where the glass took the hit, in UV
 
+// Grit struck by flying the camera through the near-field dust. One entry per
+// live mark, from the simulation:
+//   A: x, y in UV, how far it has annealed (0 fresh .. 1 gone), pit radius
+//   B: the direction it skated in, the length of the scratch (0 = a crater),
+//      and the triboluminescent spark, which is over in a moment
+#define BH_GRIT_MAX 12
+uniform vec4  uGritA[BH_GRIT_MAX];
+uniform vec4  uGritB[BH_GRIT_MAX];
+uniform int   uGritCount;
+
 in vec2 vUV;
 out vec4 frag;
 
@@ -94,6 +104,66 @@ void main() {
         col *= 1.0 - 0.55 * g;          // and the wedge itself is dark
     } else {
         col = texture(uTex, clamp(uv, 0.0, 1.0)).rgb;
+    }
+
+    // ---- grit on the front element -----------------------------------------
+    // A grain that hits square digs a pit; one that comes in at a glance
+    // skates and leaves a line. Both scatter the light passing through them -
+    // the pit like a tiny lens, the scratch along its length - and both flash
+    // as they are made: cracking quartz emits light (triboluminescence), the
+    // same cold spark as a sugar cube snapped in the dark. The coating anneals
+    // the mark away over the next few seconds.
+    for (int i = 0; i < uGritCount; ++i) {
+        vec4 a = uGritA[i], b = uGritB[i];
+        float heal = 1.0 - a.z;                  // 1 fresh, 0 annealed out
+        vec2 q = uv - a.xy;
+        q.x *= uResolution.x / max(uResolution.y, 1.0);
+        vec2 dir = b.xy;
+        // Distance to the mark: a point for a crater, a segment for a scratch.
+        float along = clamp(dot(q, dir), -b.z, b.z);
+        vec2  off   = q - dir * (b.z > 0.0 ? along : 0.0);
+        float dist  = length(off);
+        float size  = a.w * mix(0.55, 1.0, heal);
+
+        // What makes a chip in a lens visible is not that it blocks light but
+        // that it scatters it: the damaged coating takes light from around it
+        // and throws it back out of the surface. So each mark is fed by what
+        // is bright nearby - fierce across the disk, almost nothing against
+        // empty sky, which is how a real front element behaves. Darkening
+        // alone left them invisible over black.
+        vec3 lit = texture(uTex, clamp(a.xy, 0.0, 1.0)).rgb * 0.5 +
+                   texture(uTex, clamp(a.xy + vec2(0.06, 0.0), 0.0, 1.0)).rgb * 0.25 +
+                   texture(uTex, clamp(a.xy - vec2(0.0, 0.06), 0.0, 1.0)).rgb * 0.25;
+        vec3 glow = lit + vec3(0.05, 0.055, 0.07);    // a little from the sky itself
+
+        if (b.z > 0.0) {
+            // The scratch: a furrow a couple of pixels wide, scattering along
+            // its length. Anything wider stops being a scratch and becomes a
+            // white bar drawn over the picture.
+            float w = size * 0.3;
+            float groove = exp(-(dist * dist) / (w * w));
+            vec3 smear = texture(uTex, clamp(uv + dir * 0.004, 0.0, 1.0)).rgb;
+            col = mix(col, col * 0.6 + smear * 0.45, groove * heal * 0.6);
+            col += glow * groove * 0.5 * heal;
+        } else {
+            // The crater: a pit that bends what is behind it outward, ringed
+            // by shattered coating that scatters hardest of all.
+            float d = dist / max(size, 1e-5);
+            float pit = smoothstep(1.1, 0.15, d);
+            float rim = exp(-pow((d - 0.85) / 0.4, 2.0));
+            vec2 n = dist > 1e-6 ? off / dist : vec2(0.0);
+            vec3 bent = texture(uTex, clamp(uv + n * size * 1.6, 0.0, 1.0)).rgb;
+            col = mix(col, bent * 0.7, pit * heal);
+            col += glow * (rim * 0.55 + pit * 0.25) * heal;
+        }
+
+        // The spark, in the instant the grain breaks: cold, faintly blue, and
+        // gone long before the mark it leaves behind.
+        if (b.w > 0.001) {
+            float core = exp(-(dist * dist) / (size * size * 1.2));
+            float halo = exp(-(dist * dist) / (size * size * 9.0));
+            col += vec3(0.62, 0.78, 1.0) * (core * 2.4 + halo * 0.5) * b.w;
+        }
     }
 
     // ---- the sensor saturating on something very bright --------------------

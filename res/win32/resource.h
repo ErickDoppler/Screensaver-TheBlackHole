@@ -43,6 +43,7 @@
 #define IDC_TWINKLE       1038
 #define IDC_TWINKLE_VAL   1039
 #define IDC_NATURAL       1040
+#define IDC_DUSTMARKS     1041
 
 /* Colours */
 #define IDC_STARCOL       1050
@@ -94,7 +95,7 @@
  * SCENE_COUNT consecutive IDs, one checkbox each. */
 #define IDC_SCENE_BOX     1110
 #define IDC_SCENE_FIRST   1111
-#define IDC_SCENE_LAST    (IDC_SCENE_FIRST + 9)
+#define IDC_SCENE_LAST    (IDC_SCENE_FIRST + 13)
 #define IDC_SCENE_ALL     1130
 #define IDC_SCENE_NONE    1131
 

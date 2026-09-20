@@ -14,7 +14,7 @@ END
 // group's edge. The scene picker at the bottom is created hidden and revealed
 // by Ctrl+Alt+S, which also grows the dialog by SCENES_EXTRA_DU and pushes the
 // buttons down - keep the two in step.
-IDD_CONFIG DIALOGEX 0, 0, 480, 396
+IDD_CONFIG DIALOGEX 0, 0, 480, 410
 STYLE DS_SETFONT | DS_MODALFRAME | DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "The Black Hole - Settings"
 FONT 8, "MS Shell Dlg", 400, 0, 1
@@ -44,7 +44,7 @@ BEGIN
     CONTROL         "", IDC_WARP, "msctls_trackbar32", TBS_HORZ | TBS_AUTOTICKS | WS_TABSTOP, 100, 168, 100, 15
     RTEXT           "", IDC_WARP_VAL, 204, 171, 30, 8
 
-    GROUPBOX        "Particles", IDC_STATIC, 7, 196, 229, 110
+    GROUPBOX        "Particles", IDC_STATIC, 7, 196, 229, 124
     LTEXT           "Stars in view", IDC_STATIC, 14, 212, 82, 8
     CONTROL         "", IDC_STARS, "msctls_trackbar32", TBS_HORZ | TBS_AUTOTICKS | WS_TABSTOP, 100, 209, 100, 15
     RTEXT           "", IDC_STARS_VAL, 204, 212, 30, 8
@@ -61,20 +61,21 @@ BEGIN
     CONTROL         "", IDC_TWINKLE, "msctls_trackbar32", TBS_HORZ | TBS_AUTOTICKS | WS_TABSTOP, 100, 277, 100, 15
     RTEXT           "", IDC_TWINKLE_VAL, 204, 280, 30, 8
     AUTOCHECKBOX    "Natural star colours (spread by temperature)", IDC_NATURAL, 14, 293, 215, 10
+    AUTOCHECKBOX    "Flying chips the optics   (dust pits, scratches, sparks)", IDC_DUSTMARKS, 14, 307, 215, 10
 
-    GROUPBOX        "Colour", IDC_STATIC, 7, 310, 229, 54
+    GROUPBOX        "Colour", IDC_STATIC, 7, 324, 229, 54
     LTEXT           "Stars", IDC_STATIC, 14, 326, 26, 8
-    CONTROL         "", IDC_STARCOL, "Button", BS_OWNERDRAW | WS_TABSTOP, 42, 323, 30, 13
+    CONTROL         "", IDC_STARCOL, "Button", BS_OWNERDRAW | WS_TABSTOP, 42, 337, 30, 13
     LTEXT           "Space", IDC_STATIC, 82, 326, 26, 8
-    CONTROL         "", IDC_SPACECOL, "Button", BS_OWNERDRAW | WS_TABSTOP, 110, 323, 30, 13
+    CONTROL         "", IDC_SPACECOL, "Button", BS_OWNERDRAW | WS_TABSTOP, 110, 337, 30, 13
     LTEXT           "Disk", IDC_STATIC, 150, 326, 26, 8
-    CONTROL         "", IDC_DISKCOL, "Button", BS_OWNERDRAW | WS_TABSTOP, 178, 323, 30, 13
+    CONTROL         "", IDC_DISKCOL, "Button", BS_OWNERDRAW | WS_TABSTOP, 178, 337, 30, 13
     LTEXT           "Ring", IDC_STATIC, 14, 346, 26, 8
-    CONTROL         "", IDC_RINGCOL, "Button", BS_OWNERDRAW | WS_TABSTOP, 42, 343, 30, 13
+    CONTROL         "", IDC_RINGCOL, "Button", BS_OWNERDRAW | WS_TABSTOP, 42, 357, 30, 13
     LTEXT           "Shadow", IDC_STATIC, 82, 346, 26, 8
-    CONTROL         "", IDC_SHADOWCOL, "Button", BS_OWNERDRAW | WS_TABSTOP, 110, 343, 30, 13
+    CONTROL         "", IDC_SHADOWCOL, "Button", BS_OWNERDRAW | WS_TABSTOP, 110, 357, 30, 13
     LTEXT           "Nebula", IDC_STATIC, 150, 346, 26, 8
-    CONTROL         "", IDC_NEBULACOL, "Button", BS_OWNERDRAW | WS_TABSTOP, 178, 343, 30, 13
+    CONTROL         "", IDC_NEBULACOL, "Button", BS_OWNERDRAW | WS_TABSTOP, 178, 357, 30, 13
 
     // --------------------------------------------------------- right column
     GROUPBOX        "Physics", IDC_STATIC, 243, 7, 229, 105
@@ -123,29 +124,33 @@ BEGIN
     RTEXT           "", IDC_FPS_VAL, 440, 343, 30, 8
 
     // ---------------------- the scene picker: created hidden, Ctrl+Alt+S
-    GROUPBOX        "Scenes in the rotation", IDC_SCENE_BOX, 7, 374, 465, 76, NOT WS_VISIBLE
-    AUTOCHECKBOX    "Clean void", IDC_SCENE_FIRST + 0, 14, 390, 88, 10, NOT WS_VISIBLE
-    AUTOCHECKBOX    "Feeding ended", IDC_SCENE_FIRST + 1, 106, 390, 88, 10, NOT WS_VISIBLE
-    AUTOCHECKBOX    "Feeding now", IDC_SCENE_FIRST + 2, 198, 390, 88, 10, NOT WS_VISIBLE
-    AUTOCHECKBOX    "Near evaporation", IDC_SCENE_FIRST + 3, 290, 390, 88, 10, NOT WS_VISIBLE
-    AUTOCHECKBOX    "Stardust scoop", IDC_SCENE_FIRST + 4, 382, 390, 88, 10, NOT WS_VISIBLE
-    AUTOCHECKBOX    "Binary in void", IDC_SCENE_FIRST + 5, 14, 406, 88, 10, NOT WS_VISIBLE
-    AUTOCHECKBOX    "Binary with disk", IDC_SCENE_FIRST + 6, 106, 406, 88, 10, NOT WS_VISIBLE
-    AUTOCHECKBOX    "Nebula backdrop", IDC_SCENE_FIRST + 7, 198, 406, 88, 10, NOT WS_VISIBLE
-    AUTOCHECKBOX    "Galactic core", IDC_SCENE_FIRST + 8, 290, 406, 88, 10, NOT WS_VISIBLE
-    AUTOCHECKBOX    "Merger aftermath", IDC_SCENE_FIRST + 9, 382, 406, 88, 10, NOT WS_VISIBLE
-    PUSHBUTTON      "All", IDC_SCENE_ALL, 14, 424, 44, 14, NOT WS_VISIBLE
-    PUSHBUTTON      "None", IDC_SCENE_NONE, 62, 424, 44, 14, NOT WS_VISIBLE
+    GROUPBOX        "Scenes in the rotation", IDC_SCENE_BOX, 7, 388, 465, 92, NOT WS_VISIBLE
+    AUTOCHECKBOX    "Clean void", IDC_SCENE_FIRST + 0, 14, 404, 88, 10, NOT WS_VISIBLE
+    AUTOCHECKBOX    "Feeding ended", IDC_SCENE_FIRST + 1, 106, 404, 88, 10, NOT WS_VISIBLE
+    AUTOCHECKBOX    "Feeding now", IDC_SCENE_FIRST + 2, 198, 404, 88, 10, NOT WS_VISIBLE
+    AUTOCHECKBOX    "Near evaporation", IDC_SCENE_FIRST + 3, 290, 404, 88, 10, NOT WS_VISIBLE
+    AUTOCHECKBOX    "Stardust scoop", IDC_SCENE_FIRST + 4, 382, 404, 88, 10, NOT WS_VISIBLE
+    AUTOCHECKBOX    "Binary in void", IDC_SCENE_FIRST + 5, 14, 420, 88, 10, NOT WS_VISIBLE
+    AUTOCHECKBOX    "Binary with disk", IDC_SCENE_FIRST + 6, 106, 420, 88, 10, NOT WS_VISIBLE
+    AUTOCHECKBOX    "Nebula backdrop", IDC_SCENE_FIRST + 7, 198, 420, 88, 10, NOT WS_VISIBLE
+    AUTOCHECKBOX    "Galactic core", IDC_SCENE_FIRST + 8, 290, 420, 88, 10, NOT WS_VISIBLE
+    AUTOCHECKBOX    "Merger aftermath", IDC_SCENE_FIRST + 9, 382, 420, 88, 10, NOT WS_VISIBLE
+    AUTOCHECKBOX    "Binary in dust", IDC_SCENE_FIRST + 10, 14, 436, 88, 10, NOT WS_VISIBLE
+    AUTOCHECKBOX    "Wide pair, void", IDC_SCENE_FIRST + 11, 106, 436, 88, 10, NOT WS_VISIBLE
+    AUTOCHECKBOX    "Wide pair, disks", IDC_SCENE_FIRST + 12, 198, 436, 88, 10, NOT WS_VISIBLE
+    AUTOCHECKBOX    "Wide pair, dust", IDC_SCENE_FIRST + 13, 290, 436, 88, 10, NOT WS_VISIBLE
+    PUSHBUTTON      "All", IDC_SCENE_ALL, 14, 454, 44, 14, NOT WS_VISIBLE
+    PUSHBUTTON      "None", IDC_SCENE_NONE, 62, 454, 44, 14, NOT WS_VISIBLE
 
-    PUSHBUTTON      "Defaults", IDC_DEFAULTS, 7, 374, 54, 14
-    PUSHBUTTON      "Preview...", IDC_PREVIEW, 65, 374, 60, 14
-    DEFPUSHBUTTON   "OK", IDOK, 360, 374, 52, 14
-    PUSHBUTTON      "Cancel", IDCANCEL, 418, 374, 54, 14
+    PUSHBUTTON      "Defaults", IDC_DEFAULTS, 7, 388, 54, 14
+    PUSHBUTTON      "Preview...", IDC_PREVIEW, 65, 388, 60, 14
+    DEFPUSHBUTTON   "OK", IDOK, 360, 388, 52, 14
+    PUSHBUTTON      "Cancel", IDCANCEL, 418, 388, 54, 14
 END
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 1,0,1,0
- PRODUCTVERSION 1,0,1,0
+ FILEVERSION 1,1,0,0
+ PRODUCTVERSION 1,1,0,0
  FILEFLAGSMASK 0x3fL
  FILEFLAGS 0x0L
  FILEOS VOS_NT_WINDOWS32
@@ -158,13 +163,13 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Andrii Kamlyk"
             VALUE "FileDescription", "The Black Hole screensaver"
-            VALUE "FileVersion", "1.0.1.0"
+            VALUE "FileVersion", "1.1.0.0"
             VALUE "InternalName", "TheBlackHole"
             VALUE "LegalCopyright", "Copyright (c) 2026 Andrii Kamlyk. MIT License."
             VALUE "Comments", "OpenGL black hole screensaver. Open source."
             VALUE "OriginalFilename", "TheBlackHole.scr"
             VALUE "ProductName", "The Black Hole"
-            VALUE "ProductVersion", "1.0.1.0"
+            VALUE "ProductVersion", "1.1.0.0"
         END
     END
     BLOCK "VarFileInfo"

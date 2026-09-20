@@ -282,38 +282,101 @@ static void configure(Scene *sc, const Settings *s, int kind) {
         break;
 
     case SCENE_BINARY_VOID:
-    case SCENE_BINARY_FED: {
-        /* Two holes on a common centre, close enough that the merger is not
-         * far off - so the orbit is fast and the light between them bends
-         * through one shared figure rather than two separate ones. */
+    case SCENE_BINARY_FED:
+    case SCENE_BINARY_DUST:
+    case SCENE_WIDE_VOID:
+    case SCENE_WIDE_FED:
+    case SCENE_WIDE_DUST: {
+        /* Two holes on a common centre, either close enough that the merger is
+         * not far off - one shared figure, one shared shadow region - or far
+         * enough apart that each keeps its own gas and its own ring, with the
+         * gap between them the thing worth looking at. */
+        int wide = kind == SCENE_WIDE_VOID || kind == SCENE_WIDE_FED ||
+                   kind == SCENE_WIDE_DUST;
         sc->binary = 1;
         sc->mass_a = 1.f;
         sc->mass_b = rng_range(&sc->rng, 0.45f, 1.0f);
-        sc->sep = rng_range(&sc->rng, 13.f, 24.f);
+        /* The shared sheet wants the pair small against it, so the two sit in
+         * the middle of one figure; the other wide scenes want them far apart
+         * and each one its own object. */
+        sc->sep = kind == SCENE_WIDE_FED ? rng_range(&sc->rng, 26.f, 48.f)
+                : wide                   ? rng_range(&sc->rng, 70.f, 150.f)
+                                         : rng_range(&sc->rng, 13.f, 24.f);
         sc->bin_phase = rng_range(&sc->rng, 0.f, 2.f * BH_PI);
         /* A real pair this close orbits in milliseconds. Shown at that rate it
          * is a strobe and a seizure risk, so it runs on the Time dilation
          * setting - which is not a cheat, it is what a distant observer's
          * clock does to it anyway. */
         sc->bin_rate = lerpf(0.35f, 3.2f, s->time_dilation / 100.f);
-        if (kind == SCENE_BINARY_FED) {
+        /* Kepler's third law against the close pair's rate: a wide pair takes
+         * far longer to come round, and showing it at the tight pair's speed
+         * would make two holes a hundred radii apart whirl like a propeller. */
+        sc->bin_rate *= powf(18.f / sc->sep, 1.5f);
+        if (kind == SCENE_WIDE_FED) {
+            /* Far enough apart for each to hold a disk of its own, close
+             * enough that the two are still one system: gas pulled off the
+             * outer edge of each runs across the gap, so the pair share a
+             * bridge of it down the middle. */
+            sc->disk_mode = 4;
+            sc->disk_on = 1;
+            sc->disk_bright = 0.85f;
+        } else if (kind == SCENE_WIDE_DUST) {
+            sc->disk_mode = 2;
+            sc->disk_on = 1;
+            sc->disk_bright = 1.f;
+        } else if (kind == SCENE_BINARY_FED) {
             sc->disk_mode = 1;
             sc->disk_on = 1;
             sc->disk_bright = 1.5f;
+        } else if (kind == SCENE_BINARY_DUST) {
+            /* No disk has survived here, but the pair is still sweeping up
+             * rubble, and what it catches lights as it is crushed. Two centres
+             * stirring one plane means the knots are wound by an orbit that is
+             * not quite Keplerian, which is the thing to watch. */
+            sc->disk_mode = 2;
+            sc->disk_on = 1;             /* shares the plane-crossing test */
+            sc->disk_bright = 1.f;
         }
-        off_plane = 1;
-        scene_frame(sc, s, rng_f(&sc->rng) < 0.35f ? FRAME_FAR : FRAME_HERO, 0.f);
-        /* Far enough out that both fit in frame with room for the shared
-         * figure between them. */
-        sc->r_base = fmaxf(sc->r_base, sc->sep * 3.2f);
+        /* Looking down onto the plane wherever the gas or the rubble is the
+         * subject, so it spreads through the picture instead of collapsing
+         * into the edge-on line. */
+        off_plane = (sc->disk_mode == 2 || sc->disk_mode == 4) ? 2 : 1;
+        scene_frame(sc, s, wide || rng_f(&sc->rng) < 0.35f ? FRAME_FAR : FRAME_HERO, 0.f);
+        /* Far enough out that both fit in frame - with room for the shared
+         * figure between a close pair, or for the whole span of a wide one. */
+        sc->r_base = fmaxf(sc->r_base, sc->sep * (wide ? 1.9f : 3.2f));
         sc->cam_r = sc->r_base;
-        if (sc->disk_mode == 1) {
+        if (sc->disk_mode == 4) {
+            /* One sheet, with the pair inside the cavity they have cleared in
+             * it. The cavity is a little wider than the pair, and the sheet
+             * runs far enough out to carry a train of ripples. */
+            sc->disk_inner = sc->sep * 1.35f;
+            sc->disk_outer = sc->disk_inner + rng_range(&sc->rng, 170.f, 320.f);
+        } else if (sc->disk_mode == 1) {
             /* circumbinary: it can only survive outside the pair */
             sc->disk_inner = sc->sep * 1.5f;
             sc->disk_outer = sc->disk_inner + rng_range(&sc->rng, 30.f, 70.f);
+        } else if (sc->disk_mode == 2) {
+            if (wide) {
+                /* Room between two distant holes for rubble to orbit the pair
+                 * as a whole, including right across the gap. */
+                sc->disk_inner = sc->sep * 0.25f;
+                sc->disk_outer = sc->sep * 1.25f;
+            } else {
+                /* Nothing orbits between two holes this close, so the rubble
+                 * starts outside them and reaches out past the camera. */
+                sc->disk_inner = sc->sep * 1.4f;
+                sc->disk_outer = sc->disk_inner + rng_range(&sc->rng, 40.f, 90.f);
+            }
+        }
+        if (sc->disk_mode == 4) {
+            /* Far enough back for the whole sheet, ripples and all, to sit in
+             * frame with the pair small at the middle of it. */
+            sc->r_base = fmaxf(sc->r_base, sc->disk_outer * 1.9f);
+            sc->cam_r = sc->r_base;
         }
         sc->outer_reach = sc->disk_outer;
-        sc->ring_glow = 0.20f;
+        sc->ring_glow = wide ? 0.30f : 0.20f;
         break;
     }
 
@@ -327,6 +390,13 @@ static void configure(Scene *sc, const Settings *s, int kind) {
     sc->cam_theta = pick_theta(sc, off_plane, side);
     sc->theta_base = sc->cam_theta;
     sc->tumble_t = 0.f;
+    /* Whatever was burning belonged to the hole we just left. */
+    sc->flare_n = 0;
+    sc->flare_next = rng_range(&sc->rng, 0.3f, 1.5f);
+    /* Arrive composed on the new hole: the scene picks a framing, and a
+     * camera still rolled over from the last one throws it away. Yaw and
+     * Tumble pick up again from here. */
+    sc->auto_yaw = sc->auto_pitch = sc->auto_roll = 0.f;
     sc->cam_phi = rng_range(&sc->rng, 0.f, 2.f * BH_PI);
     sc->drift = 0.f;
     sc->disk_time = rng_range(&sc->rng, 0.f, 500.f);
@@ -407,34 +477,55 @@ vec3 scene_cam_pos(const Scene *sc) {
 
 void scene_cam_basis(const Scene *sc, vec3 *right, vec3 *up, vec3 *fwd) {
     vec3 p = scene_cam_pos(sc);
-    /* Looking at the hole, then turned by the idle motion and the user's own
-     * yaw and pitch together. */
+    /* Facing the hole, then turned by the idle motion, and only then by the
+     * user's own aim.
+     *
+     * The order is the whole point. The mouse has to move the view the way the
+     * view is lying right now: put the user's yaw and pitch in first and they
+     * turn the camera about axes it no longer has - under Tumble, where the
+     * horizon is rolled over, dragging sideways then slides the picture
+     * diagonally and the camera feels unhitched from the frame. Applied last,
+     * about the axes the idle motion left behind, sideways is sideways again
+     * whatever the camera is doing. */
     vec3 f = v3_norm(v3_scale(p, -1.f));
     vec3 world_up = v3(0, 1, 0);
     if (fabsf(v3_dot(f, world_up)) > 0.995f) world_up = v3(0, 0, 1);
     vec3 rt = v3_norm(v3_cross(f, world_up));
     vec3 u  = v3_cross(rt, f);
-    /* yaw about the camera's up, then pitch about its right */
-    float yaw = sc->yaw + sc->auto_yaw, pitch = sc->pitch + sc->auto_pitch;
-    float cy = cosf(yaw), sy = sinf(yaw);
-    vec3 f1 = v3_add(v3_scale(f, cy), v3_scale(rt, sy));
-    vec3 r1 = v3_sub(v3_scale(rt, cy), v3_scale(f, sy));
-    float cp = cosf(pitch), sp = sinf(pitch);
-    vec3 f2 = v3_norm(v3_add(v3_scale(f1, cp), v3_scale(u, sp)));
-    vec3 r2 = v3_norm(r1);
-    vec3 u2 = v3_norm(v3_cross(r2, f2));
-    /* and roll about the view direction, for Tumble */
+
+    /* the idle motion: yaw about up, pitch about right, then roll about the
+     * view direction */
+    float ca = cosf(sc->auto_yaw), sa = sinf(sc->auto_yaw);
+    vec3 fa = v3_add(v3_scale(f, ca), v3_scale(rt, sa));
+    vec3 ra = v3_sub(v3_scale(rt, ca), v3_scale(f, sa));
+    float cb = cosf(sc->auto_pitch), sb = sinf(sc->auto_pitch);
+    vec3 fb = v3_norm(v3_add(v3_scale(fa, cb), v3_scale(u, sb)));
+    vec3 rb = v3_norm(ra);
+    vec3 ub = v3_norm(v3_cross(rb, fb));
     float cr = cosf(sc->auto_roll), sr = sinf(sc->auto_roll);
-    *right = v3_add(v3_scale(r2, cr), v3_scale(u2, sr));
-    *up = v3_sub(v3_scale(u2, cr), v3_scale(r2, sr));
+    vec3 r0 = v3_add(v3_scale(rb, cr), v3_scale(ub, sr));
+    vec3 u0 = v3_sub(v3_scale(ub, cr), v3_scale(rb, sr));
+
+    /* the user's aim, in that frame */
+    float cy = cosf(sc->yaw), sy = sinf(sc->yaw);
+    vec3 f1 = v3_add(v3_scale(fb, cy), v3_scale(r0, sy));
+    vec3 r1 = v3_sub(v3_scale(r0, cy), v3_scale(fb, sy));
+    float cp = cosf(sc->pitch), sp = sinf(sc->pitch);
+    vec3 f2 = v3_norm(v3_add(v3_scale(f1, cp), v3_scale(u0, sp)));
+    *right = v3_norm(r1);
+    *up = v3_norm(v3_cross(*right, f2));
     *fwd = f2;
 }
 
 vec3 scene_boost_dir(const Scene *sc) {
-    vec3 r, u, f;
-    scene_cam_basis(sc, &r, &u, &f);
-    /* Leaving, we accelerate away from the hole; arriving, into it. */
-    return sc->warp == WARP_LEAVING ? v3_scale(f, -1.f) : f;
+    /* Aberration follows the direction of travel, and the warp travels along
+     * the line to the hole: out of this one, into the next. It is not the
+     * direction the camera happens to be pointing - taking it from the view
+     * made the whole sky streak sideways whenever the idle motion had the
+     * camera turned away, which is not what leaving looks like. */
+    vec3 p = scene_cam_pos(sc);
+    vec3 outward = v3_norm(p);
+    return sc->warp == WARP_LEAVING ? outward : v3_scale(outward, -1.f);
 }
 
 /* --- the pair --------------------------------------------------------------
@@ -627,6 +718,99 @@ static void update_damage(Scene *sc, const Settings *s, float dt) {
     sc->dmg_pend_matrix = sc->dmg_matrix >= 1.f ? 0.f : sc->dmg_pend_matrix - m;
 }
 
+/* --- rubble flaring in the plane (the Stardust scene) --------------------- */
+/* A knot of scooped-up debris is compressed until it lights, and then it is
+ * not a spark sitting in space: it is on an orbit, and the orbit shears it.
+ * Gas a little further in laps gas a little further out, so within seconds the
+ * knot is drawn out into a stripe wound round the hole, along exactly the path
+ * an accretion disk would take. It keeps heating as it is compressed, so its
+ * light climbs out of the red, through white, into the blue and then out of
+ * the visible band altogether - which is why it fades while going bluer rather
+ * than dimming through orange like a cooling ember.
+ *
+ * The scene only ever holds a couple of dozen of these; they are handed to the
+ * shader as an array, so the shader is not inventing them out of noise. */
+static void update_flares(Scene *sc, const Settings *s, float dt, float disk_dt) {
+    if (sc->disk_mode != 2) { sc->flare_n = 0; return; }
+
+    for (int i = 0; i < sc->flare_n; ) {
+        sc->flare[i].age += dt;
+        sc->flare[i].shear += disk_dt;
+        if (sc->flare[i].age >= BH_FLARE_LIFE) sc->flare[i] = sc->flare[--sc->flare_n];
+        else ++i;
+    }
+
+    /* Where a disk would be: outside the innermost stable orbit, inside the
+     * reach the crossing test bothers with. */
+    float lo = sc->disk_inner * 1.15f, hi = fmaxf(sc->outer_reach * 0.55f, lo + 4.f);
+
+    /* How hard to wind the stripes, chosen so a knot in the middle of that
+     * band is drawn out through a good fraction of a turn within its life.
+     * Real Keplerian rates span four orders of magnitude between a knot ten
+     * radii out and one a hundred and fifty out: left to itself, the wide
+     * pair's rubble would hang in the sky without moving while the close
+     * scene's whipped into rings. The falloff with radius inside a scene is
+     * the true one; this only sets where that curve sits. */
+    float mid = 0.5f * (lo + hi);
+    sc->flare_spin = 0.1f * powf(mid, 1.5f);
+
+    sc->flare_next -= dt;
+    if (sc->flare_next > 0.f) return;
+    sc->flare_next = rng_range(&sc->rng, 1.f, 2.f);
+    if (sc->flare_n >= BH_FLARE_MAX) return;
+
+    /* Weighted inward, where the gas falls fastest and the winding is worth
+     * watching. */
+    float u = rng_f(&sc->rng);
+    Flare *f = &sc->flare[sc->flare_n++];
+    f->r = lerpf(lo, hi, u * u);
+    f->az = rng_range(&sc->rng, -BH_PI, BH_PI);
+    f->age = 0.f;
+    f->shear = 0.f;
+    (void)s;
+}
+
+/* --- grit on the front element -------------------------------------------- */
+/* Flying the camera through the near-field dust means running into it. Each
+ * hit leaves a crater or a narrow scratch in the coating, and a spark: quartz
+ * and silicates flash when they are cracked, which is triboluminescence - the
+ * same cold light as a sugar cube snapped in the dark. The coating is doing
+ * what modern self-healing optics do, so the mark anneals out over the next
+ * five to fifteen seconds. */
+static void update_grit(Scene *sc, const Settings *s, float dt) {
+    for (int i = 0; i < sc->grit_n; ) {
+        sc->grit[i].age += dt;
+        if (sc->grit[i].age >= sc->grit[i].life) sc->grit[i] = sc->grit[--sc->grit_n];
+        else ++i;
+    }
+    if (!s->dust_marks) { sc->grit_n = 0; return; }
+
+    /* Only what the camera runs into: standing still, nothing arrives. The
+     * rate follows the speed the dust field is already showing. */
+    float rate = sc->speed * 0.55f;
+    if (rate <= 0.f) return;
+    sc->grit_next += rate * dt;
+    while (sc->grit_next >= 1.f) {
+        sc->grit_next -= 1.f;
+        if (sc->grit_n >= BH_GRIT_MAX) { sc->grit_next = 0.f; break; }
+        Grit *g = &sc->grit[sc->grit_n++];
+        g->x = rng_range(&sc->rng, 0.04f, 0.96f);
+        g->y = rng_range(&sc->rng, 0.04f, 0.96f);
+        g->age = 0.f;
+        g->life = rng_range(&sc->rng, 5.f, 15.f);
+        /* A grain that hits square digs a pit; one that comes in at a glance
+         * skates and leaves a line. */
+        float a = rng_range(&sc->rng, -BH_PI, BH_PI);
+        g->dx = cosf(a);
+        g->dy = sinf(a);
+        /* In units of the frame's height, so a mark is the same size on any
+         * display. Small enough to read as grit on the glass rather than as
+         * damage to the picture, large enough to be seen at all. */
+        g->len = rng_f(&sc->rng) < 0.45f ? rng_range(&sc->rng, 0.02f, 0.07f) : 0.f;
+        g->size = rng_range(&sc->rng, 0.003f, 0.008f);
+    }
+}
+
 /* Eased 0..1 ramp, so the warp has no corners in it. */
 static float ease(float t) {
     t = clampf(t, 0.f, 1.f);
@@ -643,6 +827,8 @@ void scene_update(Scene *sc, const Settings *s, float dt, int manual) {
     update_binary(sc, dt);
     update_movement(sc, s, dt);
     update_damage(sc, s, dt);
+    update_flares(sc, s, dt, dt * slow);
+    update_grit(sc, s, dt);
 
     /* The framing is never quite still. A very slow dolly on the orbit and a
      * matching breath in the focal length keep the shot alive without ever
