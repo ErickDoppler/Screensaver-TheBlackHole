@@ -47,12 +47,41 @@ Studio is not needed.
 
 Then open **Settings > Personalization > Lock screen > Screen saver** (or run
 `control desk.cpl,,@screensaver`) to set the wait time; **Settings...** there
-opens the screensaver's own options.
+opens the screensaver's own options. The drop-down there lists only the
+screensavers in `C:\Windows\System32`, so this one does not appear in it - it
+is already selected, and picking any other entry replaces it.
+
+**Install it with the script, not with Explorer's right-click "Install".**
+The registry stores one path, and the script stores a permanent one. Explorer
+pins the `.scr` wherever it happens to sit, so a copy in the build folder or
+in Downloads stops working the moment it is deleted - and Windows then does
+nothing at all on idle, without a word.
 
 To look at it before installing, build with
 `2-build-and-install-windows.cmd noinstall` and run
 `build\win-mingw\TheBlackHole.scr /w` for a window or `/s` for fullscreen.
 `Esc` always exits.
+
+#### Nothing happens on idle
+
+The screensaver is whatever `SCRNSAVE.EXE` under `HKCU\Control Panel\Desktop`
+points at. Check that path exists:
+
+```powershell
+Get-ItemProperty 'HKCU:\Control Panel\Desktop' | Select-Object 'SCRNSAVE.EXE', ScreenSaveActive, ScreenSaveTimeOut
+```
+
+* **It points at a file that is gone** - re-run `tools\install-windows.ps1`,
+  which points it at the permanent copy and says so when it finds a dead path.
+* **The path says `System32` but the file is in `SysWOW64`** - that is the
+  32-bit system folder. A 32-bit screensaver dialog sees `SysWOW64` *as*
+  `System32`, so its own preview works, while the 64-bit winlogon looks in the
+  real `System32`, finds nothing, and starts nothing. Re-run the install
+  script and delete the copy in `SysWOW64`.
+* **`ScreenSaveTimeOut` is missing or 0** - Windows never starts a screensaver
+  without one. The install script sets 600 seconds if it is unset.
+* **Something is holding the display awake** - `powercfg /requests` lists what
+  (a video call, a browser tab, a game).
 
 ### Linux
 
