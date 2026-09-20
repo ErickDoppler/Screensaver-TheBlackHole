@@ -1,5 +1,10 @@
 # Installs the built screensaver for the current user (no admin needed) and
-# makes it the active screensaver, or removes it again with -Uninstall.
+# makes it the active screensaver. Run from a normal PowerShell.
+#
+# The full path of a permanent copy is what goes into the registry. Explorer's
+# right-click "Install" instead pins the .scr where it happens to sit, so a
+# copy in the build folder or in Downloads stops working once it is gone, and
+# Windows then does nothing at all on idle, without a word.
 #
 #   powershell -ExecutionPolicy Bypass -File tools\install-windows.ps1
 #   powershell -ExecutionPolicy Bypass -File tools\install-windows.ps1 -Uninstall
@@ -13,12 +18,12 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 
+$key     = 'HKCU:\Control Panel\Desktop'
 $dest    = Join-Path $env:LOCALAPPDATA 'TheBlackHole'
 $target  = Join-Path $dest 'TheBlackHole.scr'
-$desktop = 'HKCU:\Control Panel\Desktop'
 
-# Tells Windows the screensaver setting changed, so it applies now rather
-# than at the next sign-in.
+# Tells Windows the screensaver settings changed, so they apply now rather than
+# at the next sign-in.
 Add-Type -Namespace BlackHole -Name Native -MemberDefinition @'
 [DllImport("user32.dll", SetLastError = true)]
 public static extern bool SystemParametersInfo(uint action, uint param, System.IntPtr vparam, uint flags);
@@ -30,10 +35,10 @@ function Update-ScreenSaverActive([bool]$on) {
 }
 
 if ($Uninstall) {
-    $current = (Get-ItemProperty $desktop -Name 'SCRNSAVE.EXE' -ErrorAction SilentlyContinue).'SCRNSAVE.EXE'
+    $current = (Get-ItemProperty $key -Name 'SCRNSAVE.EXE' -ErrorAction SilentlyContinue).'SCRNSAVE.EXE'
     if ($current -and ($current -ieq $target)) {
-        Remove-ItemProperty $desktop -Name 'SCRNSAVE.EXE'
-        Set-ItemProperty $desktop -Name 'ScreenSaveActive' -Value '0'
+        Remove-ItemProperty $key -Name 'SCRNSAVE.EXE'
+        Set-ItemProperty $key -Name 'ScreenSaveActive' -Value '0'
         Update-ScreenSaverActive $false
         Write-Host 'The Black Hole is no longer the active screensaver.'
     }
@@ -53,6 +58,8 @@ if (-not (Test-Path $Source)) {
     exit 1
 }
 
+$previous = (Get-ItemProperty $key -Name 'SCRNSAVE.EXE' -ErrorAction SilentlyContinue).'SCRNSAVE.EXE'
+
 New-Item -ItemType Directory -Force $dest | Out-Null
 try {
     Copy-Item $Source $target -Force
@@ -65,11 +72,42 @@ try {
 # and SmartScreen then blocks the screensaver from starting.
 Unblock-File $target
 
-Set-ItemProperty $desktop -Name 'SCRNSAVE.EXE' -Value $target
-Set-ItemProperty $desktop -Name 'ScreenSaveActive' -Value '1'
+Set-ItemProperty $key -Name 'SCRNSAVE.EXE' -Value $target
+Set-ItemProperty $key -Name 'ScreenSaveActive' -Value '1'
+# Without a timeout Windows never starts a screensaver; 10 minutes if unset.
+$timeout = (Get-ItemProperty $key -Name 'ScreenSaveTimeOut' -ErrorAction SilentlyContinue).ScreenSaveTimeOut
+if (-not $timeout -or [int]$timeout -le 0) {
+    $timeout = '600'
+    Set-ItemProperty $key -Name 'ScreenSaveTimeOut' -Value $timeout
+}
 Update-ScreenSaverActive $true
 
-$hash = (Get-FileHash $target -Algorithm SHA256).Hash
-Write-Host "Installed $target"
+$version = (Get-Item $target).VersionInfo.FileVersion
+$hash = (Get-FileHash $target -Algorithm SHA256).Hash.ToLower()
+Write-Host "Installed $target (version $version) and selected it as the active screensaver."
 Write-Host "SHA-256   $hash"
-Write-Host 'It is now the active screensaver for this user.'
+
+if ($previous -and $previous -ne $target -and -not (Test-Path $previous)) {
+    Write-Host ''
+    Write-Host "Note: Windows had been pointed at $previous, which does not exist -"
+    Write-Host '      that is why nothing happened on idle. It is fixed now.'
+    # The usual way that happens: a 32-bit screensaver dialog (or a copy made
+    # by a 32-bit tool) writes "system32" while actually landing in SysWOW64.
+    # Winlogon is 64-bit, looks in the real system32, finds nothing, and starts
+    # nothing - while the dialog's own preview still works.
+    $stale = Join-Path $env:WINDIR 'SysWOW64\TheBlackHole.scr'
+    if ($previous -match '(?i)system32' -and (Test-Path $stale)) {
+        Write-Host ''
+        Write-Host "      The old copy is in $stale - the 32-bit system folder."
+        Write-Host '      Windows looks for screensavers in the 64-bit one, so that copy can'
+        Write-Host '      never run. Delete it from an administrator prompt if you want it gone:'
+        Write-Host "          del `"$stale`""
+    }
+}
+
+Write-Host ''
+Write-Host "It starts after $timeout seconds of no input."
+Write-Host 'Open "Change screen saver" in Windows settings to adjust the timeout, or'
+Write-Host 'press Settings there for the screensaver''s own options.'
+Write-Host 'The dropdown there only lists screensavers in C:\Windows\System32, so'
+Write-Host 'this one is not in it; picking another entry replaces this setting.'
